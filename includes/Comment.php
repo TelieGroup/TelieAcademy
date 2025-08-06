@@ -99,6 +99,25 @@ class Comment {
         }
     }
 
+    // Get comments by user
+    public function getCommentsByUser($userId) {
+        try {
+            $query = "SELECT c.*, u.username, p.title as post_title, p.slug as post_slug
+                      FROM " . $this->table . " c
+                      LEFT JOIN users u ON c.user_id = u.id
+                      LEFT JOIN posts p ON c.post_id = p.id
+                      WHERE c.user_id = :user_id AND c.status = 'approved'
+                      ORDER BY c.created_at DESC";
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll();
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
     // Update comment status
     public function updateCommentStatus($commentId, $status) {
         try {

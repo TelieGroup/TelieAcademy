@@ -63,6 +63,34 @@ class Newsletter {
         return $result['count'];
     }
 
+    // Check if email is already subscribed
+    public function isEmailSubscribed($email) {
+        try {
+            $query = "SELECT id, is_active FROM " . $this->table . " WHERE email = :email";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':email', $email);
+            $stmt->execute();
+            $result = $stmt->fetch();
+            
+            return $result ? $result['is_active'] : false;
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    // Get subscriber by email
+    public function getSubscriberByEmail($email) {
+        try {
+            $query = "SELECT * FROM " . $this->table . " WHERE email = :email";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':email', $email);
+            $stmt->execute();
+            return $stmt->fetch();
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
     // Delete subscriber (admin)
     public function deleteSubscriber($subscriberId) {
         try {

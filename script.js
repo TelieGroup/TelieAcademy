@@ -264,6 +264,13 @@ function showLoginButton() {
 
 // Newsletter Functions
 function initializeNewsletterForms() {
+    // Check if user is already subscribed (from localStorage or session)
+    const subscribedEmail = localStorage.getItem('subscribedEmail');
+    if (subscribedEmail) {
+        hideNewsletterFormsForSubscriber(subscribedEmail);
+        return;
+    }
+
     // Main newsletter form
     const newsletterSubmit = document.getElementById('newsletterSubmit');
     if (newsletterSubmit) {
@@ -284,6 +291,218 @@ function initializeNewsletterForms() {
             subscribeNewsletter();
         });
     }
+
+    // Check subscription status for email inputs
+    const emailInputs = document.querySelectorAll('#newsletterEmail, #modalNewsletterEmail, #sidebarNewsletterEmail');
+    emailInputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            if (this.value && isValidEmail(this.value)) {
+                checkSubscriptionStatus(this.value, this);
+            }
+        });
+    });
+}
+
+// Hide newsletter forms for subscribed users
+function hideNewsletterFormsForSubscriber(email) {
+    // Hide all newsletter forms and show subscribed content
+    const newsletterForms = document.querySelectorAll('.newsletter-form');
+    newsletterForms.forEach(form => {
+        form.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                <h5 class="text-success mb-3">You're Subscribed!</h5>
+                <p class="text-muted mb-3">You're receiving our newsletter at <strong>${email}</strong></p>
+                <div class="bg-light p-3 rounded mb-3">
+                    <h6 class="mb-2">Latest Updates:</h6>
+                    <ul class="list-unstyled small text-muted">
+                        <li><i class="fas fa-arrow-right me-2"></i>New JavaScript tutorials added</li>
+                        <li><i class="fas fa-arrow-right me-2"></i>React hooks guide published</li>
+                        <li><i class="fas fa-arrow-right me-2"></i>Python for beginners series</li>
+                        <li><i class="fas fa-arrow-right me-2"></i>Web development tips weekly</li>
+                    </ul>
+                </div>
+                <button class="btn btn-outline-primary btn-sm" onclick="changeSubscriptionEmail()">
+                    <i class="fas fa-edit me-1"></i>Change Email
+                </button>
+            </div>
+        `;
+    });
+
+    // Update newsletter links in navigation and footer
+    const newsletterLinks = document.querySelectorAll('a[data-bs-target="#newsletterModal"], a[href*="newsletter"]');
+    newsletterLinks.forEach(link => {
+        link.innerHTML = '<i class="fas fa-envelope me-1"></i>Newsletter (Subscribed)';
+        link.classList.add('text-success');
+        link.onclick = function(e) {
+            e.preventDefault();
+            showSubscribedModal(email);
+        };
+    });
+}
+
+// Show subscribed modal instead of newsletter modal
+function showSubscribedModal(email) {
+    const modal = document.getElementById('newsletterModal');
+    if (modal) {
+        const modalBody = modal.querySelector('.modal-body');
+        modalBody.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                <h5 class="text-success mb-3">You're Already Subscribed!</h5>
+                <p class="text-muted mb-3">You're receiving our newsletter at <strong>${email}</strong></p>
+                <div class="bg-light p-3 rounded mb-3">
+                    <h6 class="mb-2">Latest Updates:</h6>
+                    <ul class="list-unstyled small text-muted">
+                        <li><i class="fas fa-arrow-right me-2"></i>New JavaScript tutorials added</li>
+                        <li><i class="fas fa-arrow-right me-2"></i>React hooks guide published</li>
+                        <li><i class="fas fa-arrow-right me-2"></i>Python for beginners series</li>
+                        <li><i class="fas fa-arrow-right me-2"></i>Web development tips weekly</li>
+                    </ul>
+                </div>
+                <button class="btn btn-outline-primary btn-sm" onclick="changeSubscriptionEmail()">
+                    <i class="fas fa-edit me-1"></i>Change Email
+                </button>
+            </div>
+        `;
+        
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+    }
+}
+
+// Change subscription email
+function changeSubscriptionEmail() {
+    // Clear stored email and reload page to show forms again
+    localStorage.removeItem('subscribedEmail');
+    location.reload();
+}
+
+// Check if user is already subscribed
+function checkSubscriptionStatus(email, inputElement) {
+    fetch('api/check_subscription.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.is_subscribed) {
+            showSubscribedContent(inputElement);
+            // Store the subscribed email in localStorage
+            localStorage.setItem('subscribedEmail', email);
+        }
+    })
+    .catch(error => {
+        console.error('Error checking subscription:', error);
+    });
+}
+
+// Show content for already subscribed users
+function showSubscribedContent(inputElement) {
+    // Find the newsletter container
+    const newsletterContainer = inputElement.closest('.newsletter-form') || 
+                               inputElement.closest('.modal-body') ||
+                               inputElement.closest('.card-body');
+    
+    if (newsletterContainer) {
+        const email = inputElement.value;
+        const subscriber = getSubscriberByEmail(email);
+        
+        // Check if it's the modal
+        const isModal = inputElement.id === 'modalNewsletterEmail';
+        
+        if (isModal) {
+            // Hide the form and show subscribed content in modal
+            const form = document.getElementById('modalNewsletterForm');
+            const subscribedContent = document.getElementById('modalSubscribedContent');
+            
+            if (form && subscribedContent) {
+                form.style.display = 'none';
+                subscribedContent.style.display = 'block';
+                subscribedContent.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h5 class="text-success mb-3">Already Subscribed!</h5>
+                        <p class="text-muted mb-3">You're already subscribed to our newsletter with <strong>${email}</strong></p>
+                        <div class="bg-light p-3 rounded mb-3">
+                            <h6 class="mb-2">Latest Updates:</h6>
+                            <ul class="list-unstyled small text-muted">
+                                <li><i class="fas fa-arrow-right me-2"></i>New JavaScript tutorials added</li>
+                                <li><i class="fas fa-arrow-right me-2"></i>React hooks guide published</li>
+                                <li><i class="fas fa-arrow-right me-2"></i>Python for beginners series</li>
+                                <li><i class="fas fa-arrow-right me-2"></i>Web development tips weekly</li>
+                            </ul>
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm" onclick="showNewsletterForm('${email}')">
+                            <i class="fas fa-edit me-1"></i>Change Email
+                        </button>
+                    </div>
+                `;
+            }
+        } else {
+            // Regular newsletter forms
+            newsletterContainer.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <h5 class="text-success mb-3">Already Subscribed!</h5>
+                    <p class="text-muted mb-3">You're already subscribed to our newsletter with <strong>${email}</strong></p>
+                    <div class="bg-light p-3 rounded mb-3">
+                        <h6 class="mb-2">Latest Updates:</h6>
+                        <ul class="list-unstyled small text-muted">
+                            <li><i class="fas fa-arrow-right me-2"></i>New JavaScript tutorials added</li>
+                            <li><i class="fas fa-arrow-right me-2"></i>React hooks guide published</li>
+                            <li><i class="fas fa-arrow-right me-2"></i>Python for beginners series</li>
+                            <li><i class="fas fa-arrow-right me-2"></i>Web development tips weekly</li>
+                        </ul>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="showNewsletterForm('${email}')">
+                        <i class="fas fa-edit me-1"></i>Change Email
+                    </button>
+                </div>
+            `;
+        }
+    }
+}
+
+// Show newsletter form again
+function showNewsletterForm(currentEmail = '') {
+    // Reset all newsletter forms
+    const forms = document.querySelectorAll('.newsletter-form');
+    forms.forEach(form => {
+        form.innerHTML = `
+            <div class="input-group mb-3">
+                <input type="email" class="form-control" id="newsletterEmail" placeholder="Enter your email address" value="${currentEmail}">
+                <button class="btn btn-primary" type="button" id="newsletterSubmit">
+                    <i class="fas fa-paper-plane me-1"></i>Subscribe
+                </button>
+            </div>
+            <div id="newsletterMessage" class="alert" style="display: none;"></div>
+        `;
+    });
+    
+    // Reset modal form
+    const modalForm = document.getElementById('modalNewsletterForm');
+    const modalSubscribedContent = document.getElementById('modalSubscribedContent');
+    if (modalForm && modalSubscribedContent) {
+        modalForm.style.display = 'block';
+        modalSubscribedContent.style.display = 'none';
+        document.getElementById('modalNewsletterEmail').value = currentEmail;
+    }
+    
+    // Re-initialize newsletter forms
+    initializeNewsletterForms();
+}
+
+// Get subscriber info (placeholder - would be implemented with actual data)
+function getSubscriberByEmail(email) {
+    return {
+        email: email,
+        subscribed_at: new Date().toLocaleDateString(),
+        is_active: true
+    };
 }
 
 function subscribeNewsletter() {
@@ -312,7 +531,8 @@ function subscribeNewsletter() {
     .then(response => response.json())
     .then(data => {
         const messageDiv = document.getElementById('newsletterMessage') || 
-                          document.getElementById('modalNewsletterMessage');
+                          document.getElementById('modalNewsletterMessage') ||
+                          document.getElementById('sidebarNewsletterMessage');
         
         showAlert(data.message, data.success ? 'success' : 'warning', messageDiv);
         
@@ -322,9 +542,21 @@ function subscribeNewsletter() {
                         document.getElementById('modalNewsletterForm');
             if (form) form.reset();
             
+            // Clear sidebar form
+            const sidebarEmail = document.getElementById('sidebarNewsletterEmail');
+            if (sidebarEmail) sidebarEmail.value = '';
+            
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('newsletterModal'));
             if (modal) modal.hide();
+
+            // Store the subscribed email in localStorage
+            localStorage.setItem('subscribedEmail', email);
+            
+            // Hide all newsletter forms and show subscribed content
+            setTimeout(() => {
+                hideNewsletterFormsForSubscriber(email);
+            }, 2000);
         }
     })
     .catch(error => {

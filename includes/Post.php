@@ -33,31 +33,56 @@ class Post {
 
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
-        return $stmt->fetchAll();
+        $posts = $stmt->fetchAll();
+        
+        // Convert markdown images to HTML for each post
+        foreach ($posts as &$post) {
+            $post['content'] = $this->convertMarkdownImages($post['content']);
+        }
+        
+        return $posts;
     }
 
     // Get post by slug
     public function getPostBySlug($slug, $isPremium = false) {
-        $query = "SELECT p.*, c.name as category_name, c.slug as category_slug,
-                         u.username as author_name,
-                         GROUP_CONCAT(t.name) as tags
-                  FROM " . $this->table . " p
-                  LEFT JOIN categories c ON p.category_id = c.id
-                  LEFT JOIN users u ON p.author_id = u.id
-                  LEFT JOIN post_tags pt ON p.id = pt.post_id
-                  LEFT JOIN tags t ON pt.tag_id = t.id
-                  WHERE p.slug = :slug AND p.status = 'published'";
-        
-        if (!$isPremium) {
-            $query .= " AND p.is_premium = FALSE";
+        try {
+            $query = "SELECT p.*, c.name as category_name, c.slug as category_slug, 
+                             u.username as author_name,
+                             GROUP_CONCAT(t.name) as tags
+                      FROM " . $this->table . " p 
+                      LEFT JOIN categories c ON p.category_id = c.id 
+                      LEFT JOIN users u ON p.author_id = u.id 
+                      LEFT JOIN post_tags pt ON p.id = pt.post_id
+                      LEFT JOIN tags t ON pt.tag_id = t.id
+                      WHERE p.slug = :slug AND p.status = 'published'";
+            
+            if (!$isPremium) {
+                $query .= " AND p.is_premium = 0";
+            }
+            
+            $query .= " GROUP BY p.id";
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindValue(':slug', $slug);
+            $stmt->execute();
+            $post = $stmt->fetch();
+            
+            if ($post) {
+                // Convert markdown images to HTML
+                $post['content'] = $this->convertMarkdownImages($post['content']);
+            }
+            
+            return $post;
+        } catch (Exception $e) {
+            return null;
         }
-        
-        $query .= " GROUP BY p.id";
+    }
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':slug', $slug);
-        $stmt->execute();
-        return $stmt->fetch();
+    // Convert markdown images to HTML
+    private function convertMarkdownImages($content) {
+        // Convert ![alt](url) to <img src="url" alt="alt" class="img-fluid">
+        $content = preg_replace('/!\[([^\]]*)\]\(([^)]+)\)/', '<img src="$2" alt="$1" class="img-fluid mb-3">', $content);
+        return $content;
     }
 
     // Get posts by category
@@ -79,9 +104,16 @@ class Post {
         $query .= " GROUP BY p.id ORDER BY p.published_at DESC";
 
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':category_slug', $categorySlug);
+        $stmt->bindValue(':category_slug', $categorySlug);
         $stmt->execute();
-        return $stmt->fetchAll();
+        $posts = $stmt->fetchAll();
+        
+        // Convert markdown images to HTML for each post
+        foreach ($posts as &$post) {
+            $post['content'] = $this->convertMarkdownImages($post['content']);
+        }
+        
+        return $posts;
     }
 
     // Get posts by tag
@@ -103,9 +135,16 @@ class Post {
         $query .= " GROUP BY p.id ORDER BY p.published_at DESC";
 
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':tag_slug', $tagSlug);
+        $stmt->bindValue(':tag_slug', $tagSlug);
         $stmt->execute();
-        return $stmt->fetchAll();
+        $posts = $stmt->fetchAll();
+        
+        // Convert markdown images to HTML for each post
+        foreach ($posts as &$post) {
+            $post['content'] = $this->convertMarkdownImages($post['content']);
+        }
+        
+        return $posts;
     }
 
     // Get featured posts
@@ -128,7 +167,14 @@ class Post {
 
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
-        return $stmt->fetchAll();
+        $posts = $stmt->fetchAll();
+        
+        // Convert markdown images to HTML for each post
+        foreach ($posts as &$post) {
+            $post['content'] = $this->convertMarkdownImages($post['content']);
+        }
+        
+        return $posts;
     }
 
     // Search posts
@@ -152,9 +198,16 @@ class Post {
 
         $searchTerm = '%' . $searchTerm . '%';
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':search', $searchTerm);
+        $stmt->bindValue(':search', $searchTerm);
         $stmt->execute();
-        return $stmt->fetchAll();
+        $posts = $stmt->fetchAll();
+        
+        // Convert markdown images to HTML for each post
+        foreach ($posts as &$post) {
+            $post['content'] = $this->convertMarkdownImages($post['content']);
+        }
+        
+        return $posts;
     }
 
     // Get post count
@@ -402,6 +455,36 @@ class Post {
         $stmt->bindParam(':id', $postId);
         $stmt->execute();
         return $stmt->fetch();
+    }
+
+    // Get posts by author
+    public function getPostsByAuthor($authorId) {
+        try {
+            $query = "SELECT p.*, c.name as category_name, c.slug as category_slug,
+                             u.username as author_name,
+                             GROUP_CONCAT(t.name) as tags
+                      FROM " . $this->table . " p
+                      LEFT JOIN categories c ON p.category_id = c.id
+                      LEFT JOIN users u ON p.author_id = u.id
+                      LEFT JOIN post_tags pt ON p.id = pt.post_id
+                      LEFT JOIN tags t ON pt.tag_id = t.id
+                      WHERE p.author_id = :author_id AND p.status = 'published'
+                      GROUP BY p.id ORDER BY p.published_at DESC";
+
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindValue(':author_id', $authorId, PDO::PARAM_INT);
+            $stmt->execute();
+            $posts = $stmt->fetchAll();
+            
+            // Convert markdown images to HTML for each post
+            foreach ($posts as &$post) {
+                $post['content'] = $this->convertMarkdownImages($post['content']);
+            }
+            
+            return $posts;
+        } catch (Exception $e) {
+            return [];
+        }
     }
 }
 ?> 

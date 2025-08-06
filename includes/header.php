@@ -50,7 +50,10 @@ if ($isLoggedIn) {
                 </button>
                 </span>
                 <span id="userInfo" class="text-white" style="display: none;">
-                    Welcome, <span id="username"></span>!
+                    <span style="color:#007bff">Welcome,</span> <span id="username"></span>!
+                    <a href="profile.php" class="btn btn-outline-info btn-sm ms-2" id="profileBtn">
+                        <i class="fas fa-user"></i> Profile
+                    </a>
                     <?php if ($isAdmin): ?>
                     <a href="admin/" class="btn btn-outline-warning btn-sm ms-2" id="adminBtn">
                         <i class="fas fa-cog"></i> Admin

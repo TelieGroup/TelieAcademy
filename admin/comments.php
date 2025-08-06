@@ -72,42 +72,7 @@ include '../includes/head.php';
 <div class="container-fluid mt-5 pt-5">
     <div class="row">
         <!-- Sidebar -->
-        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
-            <div class="position-sticky pt-3">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link" href="index.php">
-                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="posts.php">
-                            <i class="fas fa-file-alt me-2"></i>Posts
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="categories.php">
-                            <i class="fas fa-folder me-2"></i>Categories
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="tags.php">
-                            <i class="fas fa-tags me-2"></i>Tags
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="users.php">
-                            <i class="fas fa-users me-2"></i>Users
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="comments.php">
-                            <i class="fas fa-comments me-2"></i>Comments
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
+        <?php include '../includes/admin_sidebar.php'; ?>
 
         <!-- Main content -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">

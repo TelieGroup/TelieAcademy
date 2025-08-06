@@ -4,6 +4,8 @@ require_once '../includes/User.php';
 require_once '../includes/Post.php';
 require_once '../includes/Category.php';
 require_once '../includes/Comment.php';
+require_once '../includes/Newsletter.php'; // Added for newsletter statistics
+require_once '../includes/Media.php'; // Added for media statistics
 
 $user = new User();
 $post = new Post();
@@ -35,54 +37,7 @@ include '../includes/head.php';
 <div class="container-fluid mt-5 pt-5">
     <div class="row">
         <!-- Sidebar -->
-        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
-            <div class="position-sticky pt-3">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="index.php">
-                            <i class="fas fa-tachometer-alt me-2"></i>
-                            Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="posts.php">
-                            <i class="fas fa-file-alt me-2"></i>
-                            Posts
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="categories.php">
-                            <i class="fas fa-folder me-2"></i>
-                            Categories
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="tags.php">
-                            <i class="fas fa-tags me-2"></i>
-                            Tags
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="users.php">
-                            <i class="fas fa-users me-2"></i>
-                            Users
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="comments.php">
-                            <i class="fas fa-comments me-2"></i>
-                            Comments
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="settings.php">
-                            <i class="fas fa-cog me-2"></i>
-                            Settings
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
+        <?php include '../includes/admin_sidebar.php'; ?>
 
         <!-- Main content -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
@@ -179,6 +134,52 @@ include '../includes/head.php';
                                 </div>
                                 <div class="col-auto">
                                     <i class="fas fa-users fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        Newsletter Subscribers
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php 
+                                        $newsletter = new Newsletter();
+                                        echo $newsletter->getSubscriberCount(); 
+                                        ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-envelope fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        Media Files
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php 
+                                        $media = new Media();
+                                        echo $media->getTotalMediaCount(); 
+                                        ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-images fa-2x text-gray-300"></i>
                                 </div>
                             </div>
                         </div>

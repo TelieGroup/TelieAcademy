@@ -356,5 +356,93 @@ class User {
             return ['error' => $e->getMessage()];
         }
     }
+
+    // Get user by username
+    public function getUserByUsername($username) {
+        try {
+            $query = "SELECT * FROM " . $this->table . " WHERE username = :username";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindValue(':username', $username);
+            $stmt->execute();
+            return $stmt->fetch();
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
+    // Get user by email
+    public function getUserByEmail($email) {
+        try {
+            $query = "SELECT * FROM " . $this->table . " WHERE email = :email";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindValue(':email', $email);
+            $stmt->execute();
+            return $stmt->fetch();
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
+    // Update user profile
+    public function updateProfile($userId, $data) {
+        try {
+            $query = "UPDATE " . $this->table . " 
+                     SET username = :username, email = :email, bio = :bio, website = :website, updated_at = NOW() 
+                     WHERE id = :id";
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindValue(':username', $data['username']);
+            $stmt->bindValue(':email', $data['email']);
+            $stmt->bindValue(':bio', $data['bio'] ?? '');
+            $stmt->bindValue(':website', $data['website'] ?? '');
+            $stmt->bindValue(':id', $userId, PDO::PARAM_INT);
+            
+            if ($stmt->execute()) {
+                return ['success' => true, 'message' => 'Profile updated successfully'];
+            } else {
+                return ['success' => false, 'message' => 'Failed to update profile'];
+            }
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Error updating profile: ' . $e->getMessage()];
+        }
+    }
+
+    // Verify password
+    public function verifyPassword($userId, $password) {
+        try {
+            $query = "SELECT password_hash FROM " . $this->table . " WHERE id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindValue(':id', $userId, PDO::PARAM_INT);
+            $stmt->execute();
+            $user = $stmt->fetch();
+            
+            return $user && password_verify($password, $user['password_hash']);
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    // Change password
+    public function changePassword($userId, $newPassword) {
+        try {
+            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+            
+            $query = "UPDATE " . $this->table . " 
+                     SET password_hash = :password_hash, updated_at = NOW() 
+                     WHERE id = :id";
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindValue(':password_hash', $hashedPassword);
+            $stmt->bindValue(':id', $userId, PDO::PARAM_INT);
+            
+            if ($stmt->execute()) {
+                return ['success' => true, 'message' => 'Password changed successfully'];
+            } else {
+                return ['success' => false, 'message' => 'Failed to change password'];
+            }
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Error changing password: ' . $e->getMessage()];
+        }
+    }
 }
 ?> 

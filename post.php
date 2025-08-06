@@ -140,10 +140,50 @@ include 'includes/head.php';
                             </div>
                         </div>
                     </div>
+
+                    <!-- Newsletter Sidebar Widget -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-envelope me-2"></i>Stay Updated
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="small text-muted mb-3">Get notified about new tutorials and exclusive content.</p>
+                            <div class="newsletter-form">
+                                <input type="email" class="form-control mb-2" id="sidebarNewsletterEmail" placeholder="Your email address">
+                                <button class="btn btn-primary btn-sm w-100" type="button" id="sidebarNewsletterSubmit">
+                                    <i class="fas fa-paper-plane me-1"></i>Subscribe
+                                </button>
+                                <div id="sidebarNewsletterMessage" class="alert mt-2" style="display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Newsletter Section -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-8 text-center">
+                    <h3 class="mb-4">Enjoyed This Tutorial?</h3>
+                    <p class="text-muted mb-4">Subscribe to our newsletter and get more tutorials like this delivered to your inbox.</p>
+                    <div class="newsletter-form">
+                        <div class="input-group mb-3">
+                            <input type="email" class="form-control" id="newsletterEmail" placeholder="Enter your email address">
+                            <button class="btn btn-primary" type="button" id="newsletterSubmit">
+                                <i class="fas fa-paper-plane me-1"></i>Subscribe
+                            </button>
+                        </div>
+                        <div id="newsletterMessage" class="alert" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <?php include 'includes/footer.php'; ?>
     <?php include 'includes/modals.php'; ?>

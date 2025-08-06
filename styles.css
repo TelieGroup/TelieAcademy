@@ -29,7 +29,7 @@ body {
     background-color: var(--background-color);
     color: var(--text-color);
     transition: all 0.3s ease;
-    padding-top: 76px; /* Account for fixed navbar */
+    padding-top: 55px; /* Remove padding-top since navbar is fixed */
 }
 
 /* Navigation */
@@ -67,7 +67,7 @@ body {
     min-height: 400px;
     display: flex;
     align-items: center;
-    margin-top: 76px; /* Account for fixed navbar height */
+    margin-top: 0; /* Remove gap between navbar and hero */
 }
 
 .hero-section::before {
@@ -229,7 +229,7 @@ body {
     color: white !important;
 }
 
-#darkModeToggle i {
+#darkModeToggle{
     color: inherit !important; /* Ensure icon inherits the color */
 }
 
@@ -935,6 +935,8 @@ pre::-webkit-scrollbar-thumb:hover {
 /* Remove gap between navbar and hero section */
 .navbar {
     margin-bottom: 0 !important;
+    border-bottom: none !important;
+    color: white;
 }
 
 /* Ensure no spacing issues */
@@ -949,10 +951,23 @@ main {
 
 /* Override any Bootstrap margins */
 section.hero-section {
-    /* margin-top handled by main hero-section rule */
+    margin-top: 0 !important;
+    padding-top: 0 !important;
 }
 
 /* Ensure navbar is flush with hero section */
 .navbar + .hero-section {
-    /* margin-top handled by main hero-section rule */
+    margin-top: 0 !important;
+}
+
+/* Additional rules to eliminate any gap */
+.hero-section {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Ensure navbar is at the very top */
+.navbar.fixed-top {
+    top: 0 !important;
+    margin-top: 0 !important;
 } 

@@ -194,27 +194,7 @@ include '../includes/head.php';
 <div class="container-fluid mt-5 pt-5">
     <div class="row">
         <!-- Sidebar -->
-        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
-            <div class="position-sticky pt-3">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link" href="index.php">
-                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="posts.php">
-                            <i class="fas fa-file-alt me-2"></i>Posts
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="categories.php">
-                            <i class="fas fa-folder me-2"></i>Categories
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
+        <?php include '../includes/admin_sidebar.php'; ?>
 
         <!-- Main content -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
@@ -699,27 +679,8 @@ function insertLink() {
 
 // Insert image
 function insertImage() {
-    const src = prompt("Enter image URL:", "https://");
-    const alt = prompt("Enter alt text:", "Image");
-    
-    if (src) {
-        const img = `<img src="${src}" alt="${alt}" class="img-fluid">`;
-        
-        if (editor) {
-            const cursor = editor.getCursor();
-            editor.replaceRange(img, cursor);
-            editor.focus();
-        } else {
-            // Fallback for regular textarea
-            const textarea = document.getElementById('content');
-            const start = textarea.selectionStart;
-            const end = textarea.selectionEnd;
-            const text = textarea.value;
-            textarea.value = text.substring(0, start) + img + text.substring(end);
-            textarea.focus();
-            textarea.setSelectionRange(start + img.length, start + img.length);
-        }
-    }
+    // Redirect to media picker instead
+    openMediaPicker();
 }
 
 // Change code theme
@@ -815,7 +776,109 @@ function addTagToInput(tag) {
         tagsInput.focus();
     }
 }
+
+// Media picker functions
+function openMediaPicker() {
+    loadMediaFiles();
+    const modal = new bootstrap.Modal(document.getElementById('mediaPickerModal'));
+    modal.show();
+}
+
+function loadMediaFiles() {
+    fetch('media.php?action=get_media')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayMediaFiles(data.media);
+            } else {
+                console.error('Error loading media:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+
+function displayMediaFiles(mediaFiles) {
+    const container = document.getElementById('mediaFilesContainer');
+    container.innerHTML = '';
+    
+    if (mediaFiles.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted p-4"><i class="fas fa-inbox fa-2x mb-2"></i><p>No media files found</p></div>';
+        return;
+    }
+    
+    mediaFiles.forEach(media => {
+        const mediaItem = document.createElement('div');
+        mediaItem.className = 'col-md-3 col-sm-4 col-6 mb-3';
+        mediaItem.innerHTML = `
+            <div class="card media-item" onclick="selectMedia('${media.file_path}', '${media.original_name}', '${media.alt_text || ''}')">
+                <div class="card-body p-2 text-center">
+                    ${isImageFile(media.file_type) ? 
+                        `<img src="${media.file_path}" class="img-fluid" alt="${media.original_name}" style="max-height: 100px;">` :
+                        `<i class="fas fa-file fa-3x text-muted"></i>`
+                    }
+                    <div class="mt-2">
+                        <small class="text-muted">${media.original_name}</small>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.appendChild(mediaItem);
+    });
+}
+
+function isImageFile(fileType) {
+    return fileType && fileType.startsWith('image/');
+}
+
+function selectMedia(filePath, fileName, altText) {
+    const imageUrl = filePath;
+    const imageMarkdown = `![${altText || fileName}](${imageUrl})`;
+    
+    if (editor) {
+        const cursor = editor.getCursor();
+        editor.replaceRange(imageMarkdown, cursor);
+        editor.focus();
+    } else {
+        const textarea = document.getElementById('content');
+        const cursorPos = textarea.selectionStart;
+        const textBefore = textarea.value.substring(0, cursorPos);
+        const textAfter = textarea.value.substring(cursorPos);
+        textarea.value = textBefore + imageMarkdown + textAfter;
+        textarea.focus();
+    }
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('mediaPickerModal'));
+    modal.hide();
+}
 </script>
+
+<!-- Media Picker Modal -->
+<div class="modal fade" id="mediaPickerModal" tabindex="-1" aria-labelledby="mediaPickerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mediaPickerModalLabel">
+                    <i class="fas fa-images me-2"></i>Media Library
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row" id="mediaFilesContainer">
+                    <!-- Media files will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a href="media.php" class="btn btn-primary">
+                    <i class="fas fa-upload me-1"></i>Upload New Media
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php include '../includes/footer.php'; ?>
 <?php include '../includes/modals.php'; ?>

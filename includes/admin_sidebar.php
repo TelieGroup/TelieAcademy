@@ -38,6 +38,11 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'media.php' ? 'active' : ''; ?>" href="media.php">
+                    <i class="fas fa-images me-2"></i>Media
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'settings.php' ? 'active' : ''; ?>" href="settings.php">
                     <i class="fas fa-cog me-2"></i>Settings
                 </a>
