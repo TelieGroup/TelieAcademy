@@ -36,6 +36,7 @@ class User {
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['is_premium'] = $user['is_premium'];
+                $_SESSION['is_admin'] = $user['is_admin'];
                 
                 return ['success' => true, 'user' => $user];
             } else {
@@ -93,6 +94,20 @@ class User {
         }
     }
 
+    // Check if user is admin
+    public function isAdmin() {
+        try {
+            // Session should already be started by config/session.php
+            if (session_status() == PHP_SESSION_NONE) {
+                session_start();
+            }
+            
+            return isset($_SESSION['is_admin']) && $_SESSION['is_admin'] && $this->isLoggedIn();
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
     // Get current user
     public function getCurrentUser() {
         try {
@@ -105,7 +120,7 @@ class User {
                 return null;
             }
             
-            $query = "SELECT id, username, email, is_premium, created_at FROM " . $this->table . " WHERE id = :id";
+            $query = "SELECT id, username, email, is_premium, is_admin, created_at FROM " . $this->table . " WHERE id = :id";
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':id', $_SESSION['user_id']);
             $stmt->execute();

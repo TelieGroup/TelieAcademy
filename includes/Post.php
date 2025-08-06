@@ -10,7 +10,7 @@ class Post {
     }
 
     // Get all published posts
-    public function getAllPosts($limit = null, $offset = 0, $isPremium = false) {
+    public function getAllPosts($limit = null, $offset = 0, $isPremium = false, $sortBy = 'date') {
         $query = "SELECT p.*, c.name as category_name, c.slug as category_slug, 
                          u.username as author_name,
                          GROUP_CONCAT(t.name) as tags
@@ -25,7 +25,23 @@ class Post {
             $query .= " AND p.is_premium = FALSE";
         }
         
-        $query .= " GROUP BY p.id ORDER BY p.published_at DESC";
+        $query .= " GROUP BY p.id";
+        
+        // Sort by different criteria
+        switch ($sortBy) {
+            case 'votes':
+                $query .= " ORDER BY p.vote_score DESC, p.published_at DESC";
+                break;
+            case 'upvotes':
+                $query .= " ORDER BY p.upvotes DESC, p.published_at DESC";
+                break;
+            case 'trending':
+                $query .= " ORDER BY p.vote_score DESC, p.upvotes DESC, p.published_at DESC";
+                break;
+            default:
+                $query .= " ORDER BY p.published_at DESC";
+                break;
+        }
         
         if ($limit) {
             $query .= " LIMIT " . (int)$limit . " OFFSET " . (int)$offset;

@@ -1,5 +1,9 @@
 // TechTutorial Blog JavaScript
 
+// Global variables
+let isLoggedIn = false;
+let currentUser = null;
+
 // Dark Mode Toggle
 document.addEventListener('DOMContentLoaded', function() {
     const darkModeToggle = document.getElementById('darkModeToggle');
@@ -57,6 +61,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize comment forms
     initializeCommentForms();
+    
+    // Initialize voting functionality
+    initializeVoting();
+    
+    // Initialize newsletter modal
+    initializeNewsletterModal();
+    
+    // Debug voting system - can be removed later
+    // console.log('Page loaded - Auth Status:', {
+    //     isLoggedIn: isLoggedIn,
+    //     currentUser: currentUser,
+    //     voteButtons: document.querySelectorAll('.vote-btn').length
+    // });
     
     // Initial animation
     animateCards();
@@ -209,6 +226,11 @@ function handleLogout() {
         if (data.success) {
             showAlert(data.message, 'success');
             showLoginButton();
+            
+            // Reset global variables
+            isLoggedIn = false;
+            currentUser = null;
+            
             setTimeout(() => location.reload(), 1000);
         }
     })
@@ -220,6 +242,11 @@ function handleLogout() {
 
 function showUserInfo(user) {
     console.log('Showing user info for:', user);
+    
+    // Set global variables
+    isLoggedIn = true;
+    currentUser = user;
+    
     const loginBtn = document.getElementById('loginBtnSpan');
     const userInfo = document.getElementById('userInfo');
     const username = document.getElementById('username');
@@ -246,6 +273,11 @@ function showUserInfo(user) {
 
 function showLoginButton() {
     console.log('Showing login button');
+    
+    // Reset global variables
+    isLoggedIn = false;
+    currentUser = null;
+    
     const loginBtn = document.getElementById('loginBtnSpan');
     const userInfo = document.getElementById('userInfo');
     const adminBtn = document.getElementById('adminBtn');
@@ -288,7 +320,40 @@ function initializeNewsletterForms() {
     if (modalNewsletterForm) {
         modalNewsletterForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            subscribeNewsletter();
+            subscribeNewsletterAdvanced();
+        });
+    }
+
+    // Subscription type buttons
+    const subscriptionButtons = document.querySelectorAll('.subscription-btn');
+    subscriptionButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            selectSubscriptionType(this);
+        });
+    });
+
+    // Newsletter modal event listener
+    const newsletterModal = document.getElementById('newsletterModal');
+    if (newsletterModal) {
+        newsletterModal.addEventListener('shown.bs.modal', function() {
+            // Refresh user data when modal opens
+            if (isLoggedIn && currentUser) {
+                const emailInput = document.getElementById('modalNewsletterEmail');
+                const nameInput = document.getElementById('modalNewsletterName');
+                
+                if (emailInput && currentUser.email) {
+                    emailInput.value = currentUser.email;
+                    emailInput.readOnly = true;
+                }
+                if (nameInput && currentUser.username) {
+                    nameInput.value = currentUser.username;
+                }
+                
+                console.log('Newsletter modal opened - populated user data:', {
+                    email: currentUser.email,
+                    username: currentUser.username
+                });
+            }
         });
     }
 
@@ -916,4 +981,503 @@ function fallbackCopyTextToClipboard(text) {
     }
     
     document.body.removeChild(textArea);
+}
+
+// Voting functionality
+function initializeVoting() {
+    const voteButtons = document.querySelectorAll('.vote-btn');
+    console.log('Initializing voting, found', voteButtons.length, 'vote buttons');
+    
+    voteButtons.forEach((button, index) => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Vote button clicked!', this.dataset.voteType, 'for post', this.dataset.postId);
+            
+            const postId = this.dataset.postId;
+            const voteType = this.dataset.voteType;
+            const currentVote = this.dataset.currentVote;
+            
+            // Check if user is logged in
+            if (!isLoggedIn) {
+                showAlert('Please log in to vote', 'warning');
+                return;
+            }
+            
+            // Disable button during request
+            this.disabled = true;
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            console.log('Sending vote request to API...');
+            console.log('Request data:', { post_id: postId, vote_type: voteType });
+            
+            // Send vote request
+            fetch('api/vote.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    post_id: postId,
+                    vote_type: voteType
+                })
+            })
+            .then(response => {
+                console.log('API response status:', response.status);
+                console.log('API response headers:', response.headers);
+                return response.text().then(text => {
+                    console.log('Raw API response:', text);
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        console.error('Failed to parse JSON:', e);
+                        throw new Error('Invalid JSON response: ' + text);
+                    }
+                });
+            })
+            .then(data => {
+                console.log('Parsed API response:', data);
+                if (data.success) {
+                    console.log('Vote successful, updating UI...');
+                    // Update vote counts
+                    updateVoteCounts(postId, data.vote_stats, data.user_vote);
+                    showAlert(data.message, 'success');
+                } else {
+                    console.log('Vote failed:', data.message);
+                    showAlert(data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Vote error:', error);
+                showAlert('Error casting vote. Please try again.', 'danger');
+            })
+            .finally(() => {
+                console.log('Restoring button state...');
+                // Re-enable button
+                this.disabled = false;
+                this.innerHTML = originalText;
+            });
+        });
+    });
+}
+
+// Update vote counts for a specific post
+function updateVoteCounts(postId, voteStats, userVote) {
+    console.log('Updating vote counts for post', postId, 'with stats:', voteStats, 'user vote:', userVote);
+    
+    // Find all vote buttons for this specific post
+    const allVoteButtons = document.querySelectorAll(`[data-post-id="${postId}"]`);
+    console.log('Found', allVoteButtons.length, 'vote buttons for post', postId);
+    
+    if (allVoteButtons.length === 0) {
+        console.error('Could not find any vote buttons for post', postId);
+        return;
+    }
+    
+    // Update each vote button
+    allVoteButtons.forEach(button => {
+        const voteType = button.dataset.voteType;
+        const voteCount = button.querySelector('.vote-count');
+        
+        if (voteType === 'upvote') {
+            // Update upvote button
+            if (voteCount) {
+                voteCount.textContent = voteStats.upvotes;
+                console.log('Updated upvote count to', voteStats.upvotes);
+            }
+            
+            // Update button appearance
+            if (userVote === 'upvote') {
+                button.classList.remove('btn-outline-success');
+                button.classList.add('btn-success');
+                console.log('Set upvote button to active state');
+            } else {
+                button.classList.remove('btn-success');
+                button.classList.add('btn-outline-success');
+                console.log('Set upvote button to inactive state');
+            }
+            
+        } else if (voteType === 'downvote') {
+            // Update downvote button
+            if (voteCount) {
+                voteCount.textContent = voteStats.downvotes;
+                console.log('Updated downvote count to', voteStats.downvotes);
+            }
+            
+            // Update button appearance
+            if (userVote === 'downvote') {
+                button.classList.remove('btn-outline-danger');
+                button.classList.add('btn-danger');
+                console.log('Set downvote button to active state');
+            } else {
+                button.classList.remove('btn-danger');
+                button.classList.add('btn-outline-danger');
+                console.log('Set downvote button to inactive state');
+            }
+        }
+        
+        // Update the current vote data attribute
+        button.dataset.currentVote = userVote || '';
+    });
+    
+    // Update vote score - find it relative to any vote button
+    const firstButton = allVoteButtons[0];
+    const cardContainer = firstButton.closest('.card');
+    if (cardContainer) {
+        const voteScore = cardContainer.querySelector('.vote-score .badge');
+        if (voteScore) {
+            voteScore.innerHTML = `<i class="fas fa-chart-line me-1"></i>${voteStats.vote_score}`;
+            console.log('Updated vote score to', voteStats.vote_score);
+        } else {
+            console.warn('Could not find vote score element for post', postId);
+        }
+    }
+    
+    console.log('Vote counts update completed for post', postId);
+}
+
+// Show unsubscribe confirmation modal
+function showUnsubscribeConfirm() {
+    const modal = new bootstrap.Modal(document.getElementById('unsubscribeModal'));
+    modal.show();
+}
+
+// Handle unsubscribe process
+function handleUnsubscribe() {
+    if (!isLoggedIn) {
+        showAlert('Please login first', 'warning');
+        return;
+    }
+    
+    if (confirm('Are you sure you want to unsubscribe from the newsletter? This action cannot be undone.')) {
+        // Send unsubscribe request
+        fetch('api/unsubscribe.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                
+                // Reload page to update subscription status
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Unsubscribe error:', error);
+            alert('Failed to unsubscribe. Please try again.');
+        });
+    }
+}
+
+// Handle unsubscribe confirmation from modal
+function handleUnsubscribeConfirm() {
+    const button = event.target;
+    const originalText = button.innerHTML;
+    const messageDiv = document.getElementById('unsubscribeMessage');
+    
+    // Show loading state
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Unsubscribing...';
+    
+    // Send unsubscribe request
+    fetch('api/unsubscribe.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success', messageDiv);
+            
+            // Reload page after successful unsubscribe
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            showAlert(data.message, 'danger', messageDiv);
+        }
+    })
+    .catch(error => {
+        console.error('Unsubscribe error:', error);
+        showAlert('Failed to unsubscribe. Please try again.', 'danger', messageDiv);
+    })
+    .finally(() => {
+        // Restore button
+        button.disabled = false;
+        button.innerHTML = originalText;
+    });
+}
+
+// Show login modal
+function showLoginModal() {
+    const newsletterModal = bootstrap.Modal.getInstance(document.getElementById('newsletterModal'));
+    if (newsletterModal) {
+        newsletterModal.hide();
+    }
+    
+    setTimeout(() => {
+        const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+        loginModal.show();
+    }, 300);
+}
+
+// Show register modal
+function showRegisterModal() {
+    const newsletterModal = bootstrap.Modal.getInstance(document.getElementById('newsletterModal'));
+    if (newsletterModal) {
+        newsletterModal.hide();
+    }
+    
+    setTimeout(() => {
+        const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
+        registerModal.show();
+    }, 300);
+}
+
+// Select subscription type
+function selectSubscriptionType(button) {
+    if (!isLoggedIn) {
+        showAlert('Please login or register first to subscribe', 'warning');
+        return;
+    }
+    
+    const subscriptionType = button.dataset.subscriptionType;
+    const price = button.dataset.price;
+    const isNewsletter = subscriptionType === 'newsletter';
+    const isPremium = subscriptionType === 'premium';
+    
+    // Hide login message and show form
+    document.getElementById('loginRequiredMessage').style.display = 'none';
+    document.getElementById('subscriptionFormContainer').style.display = 'block';
+    
+    // Set form values
+    document.getElementById('selectedSubscriptionType').value = subscriptionType;
+    document.getElementById('selectedPrice').value = price;
+    
+    // Update form title
+    const titleElement = document.getElementById('selectedPlanTitle');
+    if (isNewsletter) {
+        titleElement.innerHTML = '<i class="fas fa-envelope me-2 text-primary"></i>Subscribe to Newsletter (Free)';
+        titleElement.className = 'mb-3 text-primary';
+    } else {
+        titleElement.innerHTML = '<i class="fas fa-crown me-2 text-warning"></i>Subscribe to Premium ($' + price + '/month)';
+        titleElement.className = 'mb-3 text-warning';
+    }
+    
+    // Update submit button
+    const submitBtn = document.querySelector('#modalNewsletterForm button[type="submit"]');
+    if (isNewsletter) {
+        submitBtn.className = 'btn btn-primary btn-lg w-100';
+        submitBtn.innerHTML = '<i class="fas fa-envelope me-2"></i>Subscribe to Newsletter';
+    } else {
+        submitBtn.className = 'btn btn-warning btn-lg w-100';
+        submitBtn.innerHTML = '<i class="fas fa-crown me-2"></i>Subscribe to Premium';
+    }
+    
+    // Pre-fill email with logged-in user's email
+    const emailField = document.getElementById('modalNewsletterEmail');
+    const nameField = document.getElementById('modalNewsletterName');
+    
+    if (currentUser && currentUser.email && emailField) {
+        emailField.value = currentUser.email;
+        emailField.readOnly = true;
+        console.log('Pre-filled email field with:', currentUser.email);
+    } else {
+        console.warn('Could not pre-fill email:', {
+            currentUser: currentUser,
+            emailField: emailField,
+            email: currentUser ? currentUser.email : 'no user'
+        });
+    }
+    
+    // Pre-fill name if available
+    if (currentUser && currentUser.username && nameField) {
+        nameField.value = currentUser.username;
+        console.log('Pre-filled name field with:', currentUser.username);
+    }
+}
+
+// Initialize newsletter modal based on login status
+function initializeNewsletterModal() {
+    const loginMessage = document.getElementById('loginRequiredMessage');
+    const formContainer = document.getElementById('subscriptionFormContainer');
+    
+    if (isLoggedIn) {
+        loginMessage.style.display = 'none';
+        // Don't show form yet - wait for user to select subscription type
+        
+        // Pre-populate user information if form exists
+        const emailInput = document.getElementById('modalNewsletterEmail');
+        const nameInput = document.getElementById('modalNewsletterName');
+        
+        if (currentUser) {
+            if (emailInput && currentUser.email) {
+                emailInput.value = currentUser.email;
+                emailInput.readOnly = true;
+            }
+            if (nameInput && currentUser.username) {
+                nameInput.value = currentUser.username;
+            }
+        }
+    } else {
+        loginMessage.style.display = 'block';
+        formContainer.style.display = 'none';
+    }
+}
+
+// Enhanced newsletter subscription function
+function subscribeNewsletterAdvanced() {
+    if (!isLoggedIn) {
+        showAlert('Please login or register first to subscribe', 'warning');
+        return;
+    }
+
+    const nameInput = document.getElementById('modalNewsletterName');
+    const emailInput = document.getElementById('modalNewsletterEmail');
+    const frequencyRadios = document.getElementsByName('newsletterFrequency');
+    const preferenceCheckboxes = document.querySelectorAll('.newsletter-pref');
+    const messageDiv = document.getElementById('modalNewsletterMessage');
+    const subscriptionTypeInput = document.getElementById('selectedSubscriptionType');
+    const priceInput = document.getElementById('selectedPrice');
+    
+    const name = nameInput ? nameInput.value.trim() : '';
+    const email = emailInput ? emailInput.value.trim() : '';
+    const subscriptionType = subscriptionTypeInput ? subscriptionTypeInput.value : 'newsletter';
+    const price = priceInput ? priceInput.value : '0';
+    
+    console.log('Subscription form data:', {
+        nameInput: nameInput,
+        emailInput: emailInput,
+        name: name,
+        email: email,
+        subscriptionType: subscriptionType,
+        currentUser: currentUser
+    });
+    
+    if (!email) {
+        showAlert('Please enter a valid email address', 'danger', messageDiv);
+        console.error('Email validation failed - no email provided');
+        return;
+    }
+    
+    if (!subscriptionType) {
+        showAlert('Please select a subscription type', 'danger', messageDiv);
+        return;
+    }
+    
+    // Get selected frequency
+    let frequency = 'weekly';
+    for (const radio of frequencyRadios) {
+        if (radio.checked) {
+            frequency = radio.value;
+            break;
+        }
+    }
+    
+    // Get selected preferences
+    const preferences = {};
+    preferenceCheckboxes.forEach(checkbox => {
+        preferences[checkbox.value] = checkbox.checked;
+    });
+    
+    console.log('Advanced newsletter subscription:', {
+        name: name,
+        email: email,
+        frequency: frequency,
+        preferences: preferences,
+        subscription_type: subscriptionType,
+        price: price
+    });
+    
+    // Show loading state
+    const submitBtn = document.querySelector('#modalNewsletterForm button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    
+    if (subscriptionType === 'newsletter') {
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Subscribing to Newsletter...';
+    } else {
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Subscribing to Premium...';
+    }
+    
+    // Send subscription request
+    fetch('api/newsletter.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            email: email,
+            name: name,
+            frequency: frequency,
+            preferences: preferences,
+            subscription_type: subscriptionType,
+            source: 'modal'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success', messageDiv);
+            
+            // Store subscription info
+            localStorage.setItem('subscribedEmail', email);
+            localStorage.setItem('subscriberPreferences', JSON.stringify(preferences));
+            localStorage.setItem('subscriberFrequency', frequency);
+            localStorage.setItem('subscriptionType', subscriptionType);
+            
+            // If premium subscription, update user status and reload page
+            if (data.user_updated && data.is_premium && subscriptionType === 'premium') {
+                console.log('Premium subscription activated! User is now premium.');
+                
+                // Update current user object
+                if (currentUser) {
+                    currentUser.is_premium = true;
+                }
+                
+                // Show special premium success message
+                showAlert('🎉 Welcome to Premium! You now have access to exclusive content. The page will refresh to show your new privileges.', 'success', messageDiv);
+                
+                // Reload page after a delay to show premium content
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+                
+                return; // Don't hide modal immediately for premium
+            }
+            
+            // Hide form and show success message for regular newsletter
+            setTimeout(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('newsletterModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                hideNewsletterFormsForSubscriber(email);
+            }, 2000);
+            
+        } else {
+            showAlert(data.message, 'danger', messageDiv);
+        }
+    })
+    .catch(error => {
+        console.error('Newsletter subscription error:', error);
+        showAlert('Failed to subscribe. Please try again.', 'danger', messageDiv);
+    })
+    .finally(() => {
+        // Restore button
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
 } 

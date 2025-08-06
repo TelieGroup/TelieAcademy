@@ -1,16 +1,22 @@
 <?php
+require_once 'config/session.php';
 require_once 'includes/Post.php';
 require_once 'includes/Comment.php';
 require_once 'includes/User.php';
 require_once 'includes/Tag.php';
+require_once 'includes/Vote.php';
 
 $post = new Post();
 $comment = new Comment();
 $user = new User();
 $tag = new Tag();
+$vote = new Vote();
 
 $slug = isset($_GET['slug']) ? $_GET['slug'] : '';
-$isPremium = $user->isPremium();
+
+// Check if user is logged in and premium
+$isLoggedIn = $user->isLoggedIn();
+$isPremium = $isLoggedIn ? $user->getCurrentUser()['is_premium'] : false;
 
 if (empty($slug)) {
     header('Location: index.php');
@@ -19,6 +25,10 @@ if (empty($slug)) {
 
 $postData = $post->getPostBySlug($slug, $isPremium);
 $comments = $comment->getCommentsByPost($postData['id']);
+
+// Get vote statistics
+$voteStats = $vote->getPostVoteStats($postData['id']);
+$userVote = $isLoggedIn ? $vote->getUserVote($postData['id'], $user->getCurrentUser()['id']) : null;
 
 // Set page variables for head component
 $pageTitle = htmlspecialchars($postData['title']);
@@ -79,6 +89,73 @@ include 'includes/head.php';
                 <article class="post-content mb-5">
                     <?php echo $postData['content']; ?>
                 </article>
+
+                <!-- Voting Section -->
+                <div class="voting-section mb-5">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h6 class="mb-0">Was this tutorial helpful?</h6>
+                                    <small class="text-muted">Help others discover great content by voting</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <?php if ($isLoggedIn): ?>
+                                    <?php 
+                                    $userVoteType = $userVote ? $userVote['vote_type'] : '';
+                                    ?>
+                                    <div class="d-flex align-items-center justify-content-md-end">
+                                        <div class="vote-buttons d-flex align-items-center me-3">
+                                            <button class="btn <?php echo $userVoteType === 'upvote' ? 'btn-success' : 'btn-outline-success'; ?> vote-btn me-2" 
+                                                    data-post-id="<?php echo $postData['id']; ?>" 
+                                                    data-vote-type="upvote" 
+                                                    data-current-vote="<?php echo $userVoteType; ?>"
+                                                    title="This tutorial was helpful">
+                                                <i class="fas fa-thumbs-up me-1"></i>
+                                                <span class="vote-count"><?php echo $voteStats['upvotes'] ?? 0; ?></span>
+                                            </button>
+                                            <button class="btn <?php echo $userVoteType === 'downvote' ? 'btn-danger' : 'btn-outline-danger'; ?> vote-btn" 
+                                                    data-post-id="<?php echo $postData['id']; ?>" 
+                                                    data-vote-type="downvote" 
+                                                    data-current-vote="<?php echo $userVoteType; ?>"
+                                                    title="This tutorial needs improvement">
+                                                <i class="fas fa-thumbs-down me-1"></i>
+                                                <span class="vote-count"><?php echo $voteStats['downvotes'] ?? 0; ?></span>
+                                            </button>
+                                        </div>
+                                        <div class="vote-score">
+                                            <span class="badge bg-primary fs-6">
+                                                <i class="fas fa-chart-line me-1"></i>
+                                                Score: <?php echo $voteStats['vote_score'] ?? 0; ?>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <?php else: ?>
+                                    <div class="d-flex align-items-center justify-content-md-end">
+                                        <div class="vote-stats me-3">
+                                            <small class="text-muted">
+                                                <i class="fas fa-thumbs-up text-success me-1"></i><?php echo $voteStats['upvotes'] ?? 0; ?>
+                                                <i class="fas fa-thumbs-down text-danger ms-2 me-1"></i><?php echo $voteStats['downvotes'] ?? 0; ?>
+                                            </small>
+                                        </div>
+                                        <div class="vote-score">
+                                            <span class="badge bg-secondary fs-6">
+                                                <i class="fas fa-chart-line me-1"></i>
+                                                Score: <?php echo $voteStats['vote_score'] ?? 0; ?>
+                                            </span>
+                                        </div>
+                                        <div class="ms-3">
+                                            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">
+                                                <i class="fas fa-sign-in-alt me-1"></i>Login to Vote
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <section class="comments-section">
                     <h3 class="mb-4">Comments (<?php echo count($comments); ?>)</h3>

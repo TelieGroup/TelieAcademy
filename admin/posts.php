@@ -17,7 +17,7 @@ if (!$user->isLoggedIn()) {
 }
 
 $currentUser = $user->getCurrentUser();
-if (!$currentUser || !$currentUser['is_premium']) {
+if (!$currentUser || !$currentUser['is_admin']) {
     header('Location: ../index.php');
     exit;
 }

@@ -3,10 +3,12 @@ require_once 'config/session.php';
 require_once 'includes/User.php';
 require_once 'includes/Post.php';
 require_once 'includes/Comment.php';
+require_once 'includes/Newsletter.php';
 
 $user = new User();
 $post = new Post();
 $comment = new Comment();
+$newsletter = new Newsletter();
 
 // Check if user is logged in
 if (!$user->isLoggedIn()) {
@@ -16,6 +18,9 @@ if (!$user->isLoggedIn()) {
 
 $currentUser = $user->getCurrentUser();
 $action = isset($_GET['action']) ? $_GET['action'] : 'view';
+
+// Get user's newsletter subscription
+$userSubscription = $newsletter->getUserSubscription($currentUser['id'], $currentUser['email']);
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -183,9 +188,101 @@ include 'includes/head.php';
                 </div>
             </div>
 
+            <!-- Newsletter Subscription -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-envelope me-2"></i>Newsletter Subscription
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <?php if ($userSubscription && $userSubscription['is_active']): ?>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="d-flex align-items-center mb-3">
+                                    <span class="badge bg-<?php echo $userSubscription['subscription_type'] === 'premium' ? 'warning' : 'success'; ?> me-2">
+                                        <?php echo ucfirst($userSubscription['subscription_type']); ?>
+                                    </span>
+                                    <span class="text-muted">•</span>
+                                    <span class="badge bg-info ms-2">
+                                        <?php echo ucfirst($userSubscription['frequency']); ?>
+                                    </span>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <p class="mb-1"><strong>Subscribed:</strong> <?php echo date('M j, Y', strtotime($userSubscription['subscribed_at'])); ?></p>
+                                    <?php if ($userSubscription['subscription_type'] === 'premium'): ?>
+                                        <p class="mb-1">
+                                            <strong>Premium Expires:</strong> 
+                                            <?php 
+                                            if ($userSubscription['premium_expires_at']) {
+                                                $expiryDate = new DateTime($userSubscription['premium_expires_at']);
+                                                $now = new DateTime();
+                                                if ($expiryDate > $now) {
+                                                    echo '<span class="text-success">' . $expiryDate->format('M j, Y') . '</span>';
+                                                } else {
+                                                    echo '<span class="text-danger">Expired</span>';
+                                                }
+                                            } else {
+                                                echo 'Never';
+                                            }
+                                            ?>
+                                        </p>
+                                    <?php endif; ?>
+                                </div>
+
+                                <?php if ($userSubscription['preferences'] && is_array($userSubscription['preferences'])): ?>
+                                    <?php $preferences = $userSubscription['preferences']; ?>
+                                    <div class="mb-3">
+                                        <p class="mb-2"><strong>Content Preferences:</strong></p>
+                                        <div class="row">
+                                            <?php foreach ($preferences as $key => $value): ?>
+                                                <div class="col-md-6 mb-1">
+                                                    <small>
+                                                        <i class="fas fa-<?php echo $value ? 'check-circle text-success' : 'times-circle text-muted'; ?> me-1"></i>
+                                                        <?php echo ucwords(str_replace('_', ' ', $key)); ?>
+                                                    </small>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            
+                            <div class="col-md-4 text-end">
+                                <div class="btn-group-vertical w-100">
+                                    <a href="subscription-settings.php" class="btn btn-outline-primary btn-sm mb-2">
+                                        <i class="fas fa-cog me-1"></i>Manage Subscription
+                                    </a>
+                                    
+                                    <?php if ($userSubscription['subscription_type'] === 'newsletter'): ?>
+                                        <button class="btn btn-warning btn-sm mb-2" data-bs-toggle="modal" data-bs-target="#newsletterModal">
+                                            <i class="fas fa-arrow-up me-1"></i>Upgrade to Premium
+                                        </button>
+                                    <?php endif; ?>
+                                    
+                                    <a href="unsubscribe.php" class="btn btn-outline-danger btn-sm">
+                                        <i class="fas fa-unlink me-1"></i>Unsubscribe
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="text-center py-4">
+                            <i class="fas fa-envelope-open fa-3x text-muted mb-3"></i>
+                            <h6>No Active Newsletter Subscription</h6>
+                            <p class="text-muted mb-3">Stay updated with our latest tutorials and exclusive content</p>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newsletterModal">
+                                <i class="fas fa-envelope me-2"></i>Subscribe to Newsletter
+                            </button>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
                          <!-- User Activity -->
              <div class="row">
-                 <?php if ($currentUser['is_premium']): ?>
+                 <?php if ($currentUser['is_admin']): ?>
                  <div class="col-md-6">
                      <div class="card mb-4">
                          <div class="card-header">
@@ -272,7 +369,7 @@ include 'includes/head.php';
                     </div>
                                          <div class="card-body">
                          <div class="row text-center">
-                             <?php if ($currentUser['is_premium']): ?>
+                             <?php if ($currentUser['is_admin']): ?>
                              <div class="col-6">
                                  <h4 class="text-primary"><?php echo count($userPosts); ?></h4>
                                  <small class="text-muted">Posts</small>
@@ -304,7 +401,7 @@ include 'includes/head.php';
                     </div>
                                          <div class="card-body">
                          <div class="d-grid gap-2">
-                             <?php if ($currentUser['is_premium']): ?>
+                             <?php if ($currentUser['is_admin']): ?>
                              <a href="admin/posts.php?action=add" class="btn btn-primary btn-sm">
                                  <i class="fas fa-plus me-1"></i>Create New Post
                              </a>

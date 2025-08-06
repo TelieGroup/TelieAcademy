@@ -2,14 +2,20 @@
 // Check if user is logged in and is admin
 require_once dirname(__DIR__) . '/config/session.php';
 require_once dirname(__DIR__) . '/includes/User.php';
+require_once dirname(__DIR__) . '/includes/Newsletter.php';
 
 $user = new User();
+$newsletter = new Newsletter();
 $isLoggedIn = $user->isLoggedIn();
 $isAdmin = false;
+$userSubscription = null;
 
 if ($isLoggedIn) {
     $currentUser = $user->getCurrentUser();
-    $isAdmin = $currentUser && $currentUser['is_premium'];
+    $isAdmin = $currentUser && $currentUser['is_admin'];
+    
+    // Get user's newsletter subscription
+            $userSubscription = $newsletter->getUserSubscription($currentUser['id'], $currentUser['email']);
 }
 ?>
 
@@ -38,8 +44,38 @@ if ($isLoggedIn) {
                 <li class="nav-item">
                     <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'posts.php' ? 'active' : ''; ?>" href="posts.php">All Posts</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#newsletterModal">Newsletter</a>
+                <li class="nav-item dropdown">
+                    <?php if ($userSubscription && $userSubscription['is_active']): ?>
+                        <a class="nav-link dropdown-toggle" href="#" id="newsletterDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-envelope"></i> Newsletter 
+                            <span class="badge bg-<?php echo $userSubscription['subscription_type'] === 'premium' ? 'warning' : 'success'; ?> ms-1">
+                                <?php echo ucfirst($userSubscription['subscription_type']); ?>
+                            </span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><h6 class="dropdown-header">Subscription Status</h6></li>
+                            <li><span class="dropdown-item-text">
+                                <small>
+                                    Type: <strong><?php echo ucfirst($userSubscription['subscription_type']); ?></strong><br>
+                                    Frequency: <strong><?php echo ucfirst($userSubscription['frequency']); ?></strong><br>
+                                    <?php if ($userSubscription['subscription_type'] === 'premium' && $userSubscription['premium_expires_at']): ?>
+                                        Expires: <strong><?php echo date('M j, Y', strtotime($userSubscription['premium_expires_at'])); ?></strong>
+                                    <?php endif; ?>
+                                </small>
+                            </span></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="subscription-settings.php">
+                                <i class="fas fa-cog me-2"></i>Manage Subscription
+                            </a></li>
+                            <li><a class="dropdown-item text-warning" href="unsubscribe.php">
+                                <i class="fas fa-unlink me-2"></i>Unsubscribe
+                            </a></li>
+                        </ul>
+                    <?php else: ?>
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#newsletterModal">
+                            <i class="fas fa-envelope"></i> Newsletter
+                        </a>
+                    <?php endif; ?>
                 </li>
             </ul>
             
