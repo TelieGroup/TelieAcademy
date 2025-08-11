@@ -101,10 +101,20 @@ CREATE TABLE affiliate_products (
 CREATE TABLE post_affiliate_products (
     post_id INT,
     affiliate_product_id INT,
-    position INT DEFAULT 0,
     PRIMARY KEY (post_id, affiliate_product_id),
     FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
     FOREIGN KEY (affiliate_product_id) REFERENCES affiliate_products(id) ON DELETE CASCADE
+);
+
+-- Bookmarks table
+CREATE TABLE bookmarks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    post_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_user_post (user_id, post_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
 );
 
 -- Ad placements table

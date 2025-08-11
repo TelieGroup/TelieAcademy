@@ -113,8 +113,8 @@ $pageTitle = "Subscription Settings";
                             </div>
 
                             <!-- Content Preferences -->
-                            <?php if ($subscription['preferences']): ?>
-                                <?php $preferences = json_decode($subscription['preferences'], true); ?>
+                            <?php if ($subscription['preferences'] && is_array($subscription['preferences'])): ?>
+                                <?php $preferences = $subscription['preferences']; ?>
                                 <div class="card border-secondary mb-4">
                                     <div class="card-header">
                                         <h6 class="mb-0">Content Preferences</h6>

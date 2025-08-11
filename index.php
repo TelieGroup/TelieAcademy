@@ -15,7 +15,8 @@ $vote = new Vote();
 
 // Check if user is logged in and premium
 $isLoggedIn = $user->isLoggedIn();
-$isPremium = $isLoggedIn ? $user->getCurrentUser()['is_premium'] : false;
+$currentUser = $isLoggedIn ? $user->getCurrentUser() : null;
+$isPremium = $currentUser && isset($currentUser['is_premium']) && $currentUser['is_premium'] ? true : false;
 
 // Get sort parameter
 $sortBy = $_GET['sort'] ?? 'date';
@@ -44,44 +45,66 @@ include 'includes/head.php';
     <?php include 'includes/header.php'; ?>
 
     <!-- Hero Section -->
-    <section class="hero-section text-center text-white">
+<section class="hero-section-modern text-center text-white">
         <div class="container">
             <div class="row justify-content-center">
-                <div class="col-lg-8">
-                    <div class="hero-content">
-                        <div class="hero-icon mb-3">
-                            <i class="fas fa-code"></i>
+            <div class="col-lg-10">
+                <div class="hero-content-modern">
+                    <div class="hero-icon-modern mb-4">
+                        <i class="fas fa-rocket"></i>
                         </div>
-                        <h1 class="hero-title mb-3">Learn Modern Web Development</h1>
-                        <p class="hero-subtitle mb-4">Master JavaScript, React, Python, and more with our comprehensive tutorials designed for developers and students.</p>
-                        
-                        <div class="hero-actions mb-4">
-                            <a href="#featured-posts" class="btn btn-primary btn-lg me-3">
+                    <h1 class="hero-title-modern mb-4">
+                        <span class="text-gradient">Learn Modern Web Development</span>
+                    </h1>
+                    <p class="hero-subtitle-modern mb-5">
+                        Master JavaScript, React, Python, and more with our comprehensive tutorials designed for developers and students.
+                    </p>
+                    
+                    <div class="hero-actions-modern mb-5">
+                        <a href="#featured-posts" class="btn btn-primary btn-lg me-3 hero-btn-primary">
                                 <i class="fas fa-play me-2"></i>Start Learning
                             </a>
-                            <a href="categories.php" class="btn btn-outline-light btn-lg">
+                        <a href="categories.php" class="btn btn-outline-light btn-lg hero-btn-secondary">
                                 <i class="fas fa-folder me-2"></i>Browse Categories
                             </a>
                         </div>
                         
-                        <div class="hero-stats">
+                    <!-- Search Bar -->
+                    <div class="hero-search-container mb-5">
+                        <form action="search.php" method="GET" class="hero-search-form">
+                            <div class="input-group">
+                                <input type="text" class="form-control form-control-lg" name="q" placeholder="Search tutorials..." aria-label="Search tutorials">
+                                <button class="btn btn-primary btn-lg" type="submit">
+                                    <i class="fas fa-search me-2"></i>Search
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="hero-stats-modern">
                             <div class="row justify-content-center">
-                                <div class="col-4">
-                                    <div class="stat-item">
-                                        <div class="stat-number"><?php echo $totalPosts; ?>+</div>
-                                        <div class="stat-label">Tutorials</div>
-                                    </div>
+                            <div class="col-md-3">
+                                <div class="stat-item-modern">
+                                    <div class="stat-number-modern"><?php echo $totalPosts; ?>+</div>
+                                    <div class="stat-label-modern">Tutorials</div>
                                 </div>
-                                <div class="col-4">
-                                    <div class="stat-item">
-                                        <div class="stat-number"><?php echo count($categories); ?></div>
-                                        <div class="stat-label">Categories</div>
                                     </div>
+                            <div class="col-md-3">
+                                <div class="stat-item-modern">
+                                    <div class="stat-number-modern"><?php echo count($categories); ?></div>
+                                    <div class="stat-label-modern">Categories</div>
                                 </div>
-                                <div class="col-4">
-                                    <div class="stat-item">
-                                        <div class="stat-number"><?php echo count($popularTags); ?></div>
-                                        <div class="stat-label">Topics</div>
+                                    </div>
+                            <div class="col-md-3">
+                                <div class="stat-item-modern">
+                                    <div class="stat-number-modern"><?php echo count($popularTags); ?></div>
+                                    <div class="stat-label-modern">Topics</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-item-modern">
+                                    <div class="stat-number-modern"><?php echo $isPremium ? 'Premium' : 'Free'; ?></div>
+                                    <div class="stat-label-modern">Access</div>
                                     </div>
                                 </div>
                             </div>
@@ -93,212 +116,260 @@ include 'includes/head.php';
     </section>
 
     <!-- Featured Posts Section -->
-    <section id="featured-posts" class="py-5">
+<section id="featured-posts" class="featured-section py-5">
         <div class="container">
-            <div class="row">
-                <div class="col-12">
-                    <h2 class="text-center mb-5">Featured Tutorials</h2>
-                </div>
+        <div class="section-header text-center mb-5">
+            <h2 class="section-title-modern">
+                <i class="fas fa-star me-3 text-warning"></i>Featured Tutorials
+            </h2>
+            <p class="section-subtitle-modern">Hand-picked tutorials to get you started</p>
             </div>
             
-            <div class="row">
+        <div class="featured-posts-grid">
                 <?php foreach ($featuredPosts as $post): ?>
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card h-100 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <span class="badge bg-primary"><?php echo htmlspecialchars($post['category_name']); ?></span>
-                                <?php if ($post['is_premium']): ?>
-                                <span class="badge bg-warning text-dark">
-                                    <i class="fas fa-crown me-1"></i>Premium
-                                </span>
-                                <?php endif; ?>
-                            </div>
-                            
-                            <h5 class="card-title">
-                                <a href="post.php?slug=<?php echo $post['slug']; ?>" class="text-decoration-none">
+            <div class="featured-post-card">
+                <div class="card-header-modern">
+                    <div class="badges-container">
+                        <span class="category-badge-modern">
+                            <i class="fas fa-folder me-1"></i>
+                            <?php echo htmlspecialchars($post['category_name']); ?>
+                        </span>
+                            <?php if ($post['is_premium']): ?>
+                        <span class="premium-badge-modern">
+                            <i class="fas fa-crown me-1"></i>Premium
+                            </span>
+                            <?php endif; ?>
+                        <span class="featured-badge-modern">
+                            <i class="fas fa-star me-1"></i>Featured
+                        </span>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-sm btn-outline-secondary bookmark-btn" 
+                                data-post-id="<?php echo $post['id']; ?>" 
+                                title="Bookmark">
+                            <i class="fas fa-bookmark"></i>
+                        </button>
+                    </div>
+                        </div>
+                        
+                <div class="card-body-modern">
+                    <h3 class="card-title-modern">
+                                <a href="post.php?slug=<?php echo $post['slug']; ?>">
                                     <?php echo htmlspecialchars($post['title']); ?>
                                 </a>
-                            </h5>
+                    </h3>
                             
-                            <p class="card-text text-muted">
+                    <p class="card-excerpt">
                                 <?php echo htmlspecialchars($post['excerpt']); ?>
                             </p>
                             
-                            <div class="d-flex justify-content-between align-items-center">
-                                <small class="text-muted">
-                                    <i class="fas fa-user me-1"></i><?php echo htmlspecialchars($post['author_name']); ?>
-                                </small>
-                                <small class="text-muted">
-                                    <i class="fas fa-calendar me-1"></i><?php echo date('M j, Y', strtotime($post['published_at'])); ?>
-                                </small>
-                            </div>
-                            
                             <?php if ($post['tags']): ?>
-                            <div class="mt-3">
+                    <div class="tags-container-modern">
                                 <?php 
                                 $tags = explode(',', $post['tags']);
-                                foreach (array_slice($tags, 0, 3) as $tagItem): 
+                        foreach (array_slice($tags, 0, 4) as $tagItem): 
                                     $tagName = trim($tagItem);
                                     if (!empty($tagName)):
-                                        // Get tag properties from database
                                         $tagData = $tag->getTagByName($tagName);
                                         $tagColor = $tagData ? $tagData['color'] : '#6c757d';
                                         $tagSlug = $tagData ? $tagData['slug'] : strtolower(str_replace(' ', '-', $tagName));
                                 ?>
-                                <a href="tags.php?tag=<?php echo urlencode($tagSlug); ?>" class="badge text-decoration-none me-1" style="background-color: <?php echo htmlspecialchars($tagColor); ?>; color: white;">
+                        <a href="tags.php?tag=<?php echo urlencode($tagSlug); ?>" class="tag-badge-modern" style="background-color: <?php echo htmlspecialchars($tagColor); ?>;">
                                     <?php echo htmlspecialchars($tagName); ?>
                                 </a>
                                 <?php 
                                     endif;
                                 endforeach; 
                                 ?>
-                                <?php if (count($tags) > 3): ?>
-                                <span class="badge bg-light text-dark">+<?php echo count($tags) - 3; ?> more</span>
+                        <?php if (count($tags) > 4): ?>
+                        <span class="tag-badge-modern more-tags">+<?php echo count($tags) - 4; ?> more</span>
                                 <?php endif; ?>
                             </div>
                             <?php endif; ?>
+                </div>
+                
+                <div class="card-footer-modern">
+                    <div class="meta-info">
+                        <div class="author-info">
+                            <div class="author-avatar">
+                                <i class="fas fa-user-circle"></i>
+                            </div>
+                            <div class="author-details">
+                                <span class="author-name"><?php echo htmlspecialchars($post['author_name']); ?></span>
+                                <span class="publish-date"><?php echo date('M j, Y', strtotime($post['published_at'])); ?></span>
+                            </div>
+                        </div>
                             
                             <!-- Voting Section -->
+                        <div class="voting-section-modern">
                             <?php if ($isLoggedIn): ?>
                             <?php 
-                            // Get user's current vote once to avoid multiple database calls
-                            $currentUserVote = $vote->getUserVote($post['id'], $user->getCurrentUser()['id']);
+                            $currentUserVote = $vote->getUserVote($post['id'], $currentUser['id']);
                             $userVoteType = $currentUserVote ? $currentUserVote['vote_type'] : '';
                             ?>
-                            <div class="mt-3 pt-3 border-top">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div class="vote-buttons d-flex align-items-center">
-                                        <button class="btn btn-sm <?php echo $userVoteType === 'upvote' ? 'btn-success' : 'btn-outline-success'; ?> vote-btn" 
+                            <div class="vote-buttons-modern">
+                                <button class="vote-btn-modern upvote <?php echo $userVoteType === 'upvote' ? 'voted' : ''; ?>" 
                                                 data-post-id="<?php echo $post['id']; ?>" 
                                                 data-vote-type="upvote" 
                                                 data-current-vote="<?php echo $userVoteType; ?>"
                                                 title="Upvote">
                                             <i class="fas fa-thumbs-up"></i>
-                                            <span class="vote-count ms-1"><?php echo $post['upvotes'] ?? 0; ?></span>
+                                    <span class="vote-count"><?php echo $post['upvotes'] ?? 0; ?></span>
                                         </button>
-                                        <button class="btn btn-sm <?php echo $userVoteType === 'downvote' ? 'btn-danger' : 'btn-outline-danger'; ?> vote-btn ms-2" 
+                                <button class="vote-btn-modern downvote <?php echo $userVoteType === 'downvote' ? 'voted' : ''; ?>" 
                                                 data-post-id="<?php echo $post['id']; ?>" 
                                                 data-vote-type="downvote" 
                                                 data-current-vote="<?php echo $userVoteType; ?>"
                                                 title="Downvote">
                                             <i class="fas fa-thumbs-down"></i>
-                                            <span class="vote-count ms-1"><?php echo $post['downvotes'] ?? 0; ?></span>
+                                    <span class="vote-count"><?php echo $post['downvotes'] ?? 0; ?></span>
                                         </button>
-                                    </div>
-                                    <div class="vote-score">
-                                        <span class="badge bg-primary">
-                                            <i class="fas fa-chart-line me-1"></i>
-                                            <?php echo $post['vote_score'] ?? 0; ?>
-                                        </span>
-                                    </div>
-                                </div>
                             </div>
                             <?php else: ?>
-                            <div class="mt-3 pt-3 border-top">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div class="vote-stats">
-                                        <small class="text-muted">
-                                            <i class="fas fa-thumbs-up text-success me-1"></i><?php echo $post['upvotes'] ?? 0; ?>
-                                            <i class="fas fa-thumbs-down text-danger ms-2 me-1"></i><?php echo $post['downvotes'] ?? 0; ?>
-                                        </small>
+                            <div class="vote-stats-modern">
+                                <span class="vote-stat">
+                                    <i class="fas fa-thumbs-up text-success"></i>
+                                    <?php echo $post['upvotes'] ?? 0; ?>
+                                </span>
+                                <span class="vote-stat">
+                                    <i class="fas fa-thumbs-down text-danger"></i>
+                                    <?php echo $post['downvotes'] ?? 0; ?>
+                                </span>
                                     </div>
-                                    <div class="vote-score">
-                                        <span class="badge bg-secondary">
+                            <?php endif; ?>
+                            
+                            <div class="vote-score-modern">
+                                <span class="score-badge">
                                             <i class="fas fa-chart-line me-1"></i>
                                             <?php echo $post['vote_score'] ?? 0; ?>
                                         </span>
                                     </div>
-                                </div>
-                            </div>
-                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
-                <?php endforeach; ?>
+            </div>
+            <?php endforeach; ?>
             </div>
             
-            <div class="text-center mt-4">
-                <a href="posts.php" class="btn btn-primary">View All Tutorials</a>
-            </div>
+        <div class="text-center mt-5">
+            <a href="posts.php" class="btn btn-primary btn-lg view-all-btn">
+                <i class="fas fa-arrow-right me-2"></i>View All Tutorials
+            </a>
+        </div>
         </div>
     </section>
 
     <!-- Trending Posts Section -->
     <?php if (!empty($trendingPosts)): ?>
-    <section class="py-5 bg-light">
+<section class="trending-section py-5">
         <div class="container">
-            <div class="row">
-                <div class="col-12">
-                    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div class="section-header-modern mb-5">
+            <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h2 class="mb-1">🔥 Trending Tutorials</h2>
-                            <p class="text-muted mb-0">Most popular tutorials this month</p>
-                        </div>
-                        <a href="posts.php?sort=trending" class="btn btn-outline-primary">
-                            <i class="fas fa-fire me-1"></i>View All Trending
-                        </a>
-                    </div>
+                    <h2 class="section-title-modern">
+                        <i class="fas fa-fire me-3 text-danger"></i>🔥 Trending Tutorials
+                    </h2>
+                    <p class="section-subtitle-modern">Most popular tutorials this month</p>
+                </div>
+                <a href="posts.php?sort=trending" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-fire me-2"></i>View All Trending
+                </a>
                 </div>
             </div>
             
-            <div class="row">
+        <div class="trending-posts-grid">
                 <?php foreach ($trendingPosts as $post): ?>
-                <div class="col-md-6 col-xl-4 mb-4">
-                    <div class="card h-100 shadow-sm trending-card">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <span class="badge bg-primary"><?php echo htmlspecialchars($post['category_name']); ?></span>
-                                <div class="d-flex align-items-center">
-                                    <?php if ($post['is_premium']): ?>
-                                    <span class="badge bg-warning text-dark me-2">
-                                        <i class="fas fa-crown me-1"></i>Premium
-                                    </span>
-                                    <?php endif; ?>
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-chart-line me-1"></i><?php echo $post['vote_score'] ?? 0; ?>
-                                    </span>
-                                </div>
-                            </div>
-                            
-                            <h5 class="card-title">
-                                <a href="post.php?slug=<?php echo $post['slug']; ?>" class="text-decoration-none">
+            <div class="trending-post-card">
+                <div class="trending-indicator-modern">
+                            <i class="fas fa-fire"></i>
+                        </div>
+                
+                <div class="card-header-modern">
+                    <div class="badges-container">
+                        <span class="category-badge-modern">
+                            <i class="fas fa-folder me-1"></i>
+                            <?php echo htmlspecialchars($post['category_name']); ?>
+                        </span>
+                            <?php if ($post['is_premium']): ?>
+                        <span class="premium-badge-modern">
+                            <i class="fas fa-crown me-1"></i>Premium
+                            </span>
+                            <?php endif; ?>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-sm btn-outline-secondary bookmark-btn" 
+                                data-post-id="<?php echo $post['id']; ?>" 
+                                title="Bookmark">
+                            <i class="fas fa-bookmark"></i>
+                        </button>
+                    </div>
+                        </div>
+                        
+                <div class="card-body-modern">
+                    <h3 class="card-title-modern">
+                                <a href="post.php?slug=<?php echo $post['slug']; ?>">
                                     <?php echo htmlspecialchars($post['title']); ?>
                                 </a>
-                            </h5>
+                    </h3>
                             
-                            <p class="card-text text-muted">
+                    <p class="card-excerpt">
                                 <?php echo htmlspecialchars($post['excerpt']); ?>
                             </p>
                             
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <small class="text-muted">
-                                    <i class="fas fa-user me-1"></i><?php echo htmlspecialchars($post['author_name']); ?>
-                                </small>
-                                <small class="text-muted">
-                                    <i class="fas fa-calendar me-1"></i><?php echo date('M j', strtotime($post['published_at'])); ?>
-                                </small>
+                    <?php if ($post['tags']): ?>
+                    <div class="tags-container-modern">
+                        <?php 
+                        $tags = explode(',', $post['tags']);
+                        foreach (array_slice($tags, 0, 3) as $tagItem): 
+                            $tagName = trim($tagItem);
+                            if (!empty($tagName)):
+                                $tagData = $tag->getTagByName($tagName);
+                                $tagColor = $tagData ? $tagData['color'] : '#6c757d';
+                                $tagSlug = $tagData ? $tagData['slug'] : strtolower(str_replace(' ', '-', $tagName));
+                        ?>
+                        <a href="tags.php?tag=<?php echo urlencode($tagSlug); ?>" class="tag-badge-modern" style="background-color: <?php echo htmlspecialchars($tagColor); ?>;">
+                            <?php echo htmlspecialchars($tagName); ?>
+                        </a>
+                        <?php 
+                            endif;
+                        endforeach; 
+                        ?>
+                        <?php if (count($tags) > 3): ?>
+                        <span class="tag-badge-modern more-tags">+<?php echo count($tags) - 3; ?> more</span>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+                                </div>
+                
+                <div class="card-footer-modern">
+                    <div class="meta-info">
+                        <div class="author-info">
+                            <div class="author-avatar">
+                                <i class="fas fa-user-circle"></i>
+                            </div>
+                            <div class="author-details">
+                                <span class="author-name"><?php echo htmlspecialchars($post['author_name']); ?></span>
+                                <span class="publish-date"><?php echo date('M j', strtotime($post['published_at'])); ?></span>
+                                </div>
                             </div>
                             
                             <!-- Voting Section for Trending Posts -->
+                        <div class="voting-section-modern">
                             <?php if ($isLoggedIn): ?>
                             <?php 
-                            // Get user's current vote
-                            $currentUserVote = $vote->getUserVote($post['id'], $user->getCurrentUser()['id']);
+                            $currentUserVote = $vote->getUserVote($post['id'], $currentUser['id']);
                             $userVoteType = $currentUserVote ? $currentUserVote['vote_type'] : '';
                             ?>
-                            <div class="pt-3 border-top">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div class="vote-buttons d-flex align-items-center">
-                                        <button class="btn btn-sm <?php echo $userVoteType === 'upvote' ? 'btn-success' : 'btn-outline-success'; ?> vote-btn" 
+                            <div class="vote-buttons-modern">
+                                <button class="vote-btn-modern upvote <?php echo $userVoteType === 'upvote' ? 'voted' : ''; ?>" 
                                                 data-post-id="<?php echo $post['id']; ?>" 
                                                 data-vote-type="upvote" 
                                                 data-current-vote="<?php echo $userVoteType; ?>"
                                                 title="Upvote">
                                             <i class="fas fa-thumbs-up"></i>
-                                            <span class="vote-count ms-1"><?php echo $post['upvotes'] ?? 0; ?></span>
+                                    <span class="vote-count"><?php echo $post['upvotes'] ?? 0; ?></span>
                                         </button>
-                                        <button class="btn btn-sm <?php echo $userVoteType === 'downvote' ? 'btn-danger' : 'btn-outline-danger'; ?> vote-btn ms-2" 
+                                        <button class="btn btn-sm <?php echo $userVoteType === 'downvote' ? 'btn-danger' : 'btn-outline-danger'; ?> vote-btn" 
                                                 data-post-id="<?php echo $post['id']; ?>" 
                                                 data-vote-type="downvote" 
                                                 data-current-vote="<?php echo $userVoteType; ?>"
@@ -306,108 +377,112 @@ include 'includes/head.php';
                                             <i class="fas fa-thumbs-down"></i>
                                             <span class="vote-count ms-1"><?php echo $post['downvotes'] ?? 0; ?></span>
                                         </button>
-                                    </div>
-                                    <small class="text-muted">
-                                        <i class="fas fa-thumbs-up text-success me-1"></i><?php echo $post['upvotes'] ?? 0; ?>
-                                        <i class="fas fa-thumbs-down text-danger ms-1 me-1"></i><?php echo $post['downvotes'] ?? 0; ?>
-                                    </small>
-                                </div>
                             </div>
                             <?php else: ?>
-                            <div class="pt-3 border-top">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <small class="text-muted">
-                                        <i class="fas fa-thumbs-up text-success me-1"></i><?php echo $post['upvotes'] ?? 0; ?>
-                                        <i class="fas fa-thumbs-down text-danger ms-2 me-1"></i><?php echo $post['downvotes'] ?? 0; ?>
-                                    </small>
-                                    <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">
-                                        <i class="fas fa-sign-in-alt me-1"></i>Login to Vote
-                                    </button>
-                                </div>
+                            <div class="vote-stats-modern">
+                                <span class="vote-stat">
+                                    <i class="fas fa-thumbs-up text-success"></i>
+                                    <?php echo $post['upvotes'] ?? 0; ?>
+                                </span>
+                                <span class="vote-stat">
+                                    <i class="fas fa-thumbs-down text-danger"></i>
+                                    <?php echo $post['downvotes'] ?? 0; ?>
+                                        </span>
                             </div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-    </section>
     <?php endif; ?>
 
-    <!-- Banner Ads Section -->
-    <section class="py-4">
-        <div class="container">
-            <div class="row">
-                <div class="col-12">
-                    <div class="ad-banner-container">
-                        <div class="ad-banner" id="homepage-banner-ad">
-                            <!-- Google AdSense Banner Ad Placeholder -->
-                            <div class="ad-placeholder">
-                                <div class="ad-content">
-                                    <i class="fas fa-ad fa-2x text-muted mb-2"></i>
-                                    <h6 class="text-muted">Advertisement</h6>
-                                    <p class="text-muted small">Google AdSense Banner Ad</p>
-                                    <div class="ad-dimensions">
-                                        <span class="badge bg-light text-dark">728x90</span>
-                                        <span class="badge bg-light text-dark">300x250</span>
-                                        <span class="badge bg-light text-dark">320x50</span>
-                                    </div>
-                                </div>
+                            <div class="vote-score-modern">
+                                <span class="score-badge">
+                                    <i class="fas fa-chart-line me-1"></i>
+                                    <?php echo $post['vote_score'] ?? 0; ?>
+                                </span>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
+            <?php endforeach; ?>
             </div>
         </div>
     </section>
+<?php endif; ?>
 
     <!-- Categories Section -->
-    <section class="py-5 bg-light">
+<section class="categories-section py-5">
         <div class="container">
-            <div class="row">
-                <div class="col-12">
-                    <h2 class="text-center mb-5">Explore Categories</h2>
-                </div>
+        <div class="section-header text-center mb-5">
+            <h2 class="section-title-modern">
+                <i class="fas fa-th-large me-3 text-primary"></i>Explore Categories
+            </h2>
+            <p class="section-subtitle-modern">Find tutorials by topic and skill level</p>
             </div>
             
-            <div class="row">
+        <div class="categories-grid">
                 <?php foreach ($categories as $cat): ?>
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card text-center h-100">
-                        <div class="card-body">
-                            <div class="category-icon mb-3">
-                                <i class="fas fa-code fa-3x text-primary"></i>
+            <div class="category-card-modern">
+                <div class="category-icon-modern">
+                    <i class="fas fa-code"></i>
                             </div>
-                            <h5 class="card-title"><?php echo htmlspecialchars($cat['name']); ?></h5>
-                            <p class="card-text text-muted"><?php echo htmlspecialchars($cat['description']); ?></p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="badge bg-primary"><?php echo $cat['post_count']; ?> tutorials</span>
-                                <a href="categories.php?category=<?php echo $cat['slug']; ?>" class="btn btn-outline-primary btn-sm">Explore</a>
-                            </div>
-                        </div>
+                <div class="category-content">
+                    <h3 class="category-title"><?php echo htmlspecialchars($cat['name']); ?></h3>
+                    <p class="category-description"><?php echo htmlspecialchars($cat['description']); ?></p>
+                    <div class="category-meta">
+                        <span class="tutorial-count"><?php echo $cat['post_count']; ?> tutorials</span>
+                        <a href="categories.php?category=<?php echo $cat['slug']; ?>" class="explore-btn">
+                            <i class="fas fa-arrow-right"></i>
+                        </a>
                     </div>
                 </div>
-                <?php endforeach; ?>
+            </div>
+            <?php endforeach; ?>
             </div>
         </div>
     </section>
 
     <!-- Newsletter Section -->
-    <section class="py-5">
+<section class="newsletter-section-modern py-5">
         <div class="container">
             <div class="row justify-content-center">
                 <div class="col-lg-8 text-center">
-                    <h2 class="mb-4">Stay Updated</h2>
-                    <p class="lead mb-4">Get the latest tutorials and tech insights delivered to your inbox.</p>
-                    <div class="newsletter-form">
-                        <div class="input-group mb-3">
-                            <input type="email" class="form-control" id="newsletterEmail" placeholder="Enter your email address">
-                            <button class="btn btn-primary" type="button" id="newsletterSubmit">
+                <div class="newsletter-card">
+                    <div class="newsletter-icon mb-4">
+                        <i class="fas fa-envelope-open-text fa-3x text-primary"></i>
+                    </div>
+                    <h3 class="mb-3">Stay Updated with New Tutorials</h3>
+                    <p class="text-muted mb-4">Get the latest tutorials, coding tips, and tech insights delivered directly to your inbox.</p>
+                    
+                    <div class="newsletter-form-modern">
+                        <div class="input-group">
+                            <input type="email" class="form-control form-control-lg" id="newsletterEmail" placeholder="Enter your email address">
+                            <button class="btn btn-primary btn-lg" type="button" id="newsletterSubmit">
                                 <i class="fas fa-paper-plane me-2"></i>Subscribe
                             </button>
                         </div>
-                        <div id="newsletterMessage" class="alert" style="display: none;"></div>
+                        <div id="newsletterMessage" class="alert mt-3" style="display: none;"></div>
+                    </div>
+                    
+                    <div class="newsletter-benefits mt-4">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="benefit-item">
+                                    <i class="fas fa-bell text-primary mb-2"></i>
+                                    <small>Weekly Updates</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="benefit-item">
+                                    <i class="fas fa-gift text-primary mb-2"></i>
+                                    <small>Exclusive Content</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="benefit-item">
+                                    <i class="fas fa-shield-alt text-primary mb-2"></i>
+                                    <small>No Spam</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     </div>
                 </div>
             </div>
@@ -416,5 +491,4 @@ include 'includes/head.php';
 
     <?php include 'includes/footer.php'; ?>
     <?php include 'includes/modals.php'; ?>
-
     <?php include 'includes/scripts.php'; ?> 

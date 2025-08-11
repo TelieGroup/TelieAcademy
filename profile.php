@@ -158,9 +158,60 @@ include 'includes/head.php';
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-3 text-center mb-3">
-                            <div class="profile-avatar">
-                                <i class="fas fa-user-circle fa-5x text-muted"></i>
+                            <div class="profile-avatar position-relative">
+                                <?php if (!empty($currentUser['profile_picture'])): ?>
+                                    <img src="<?php echo htmlspecialchars($currentUser['profile_picture']); ?>" 
+                                         alt="Profile Picture" 
+                                         class="rounded-circle img-fluid" 
+                                         style="width: 120px; height: 120px; object-fit: cover;">
+                                    
+                                    <?php 
+                                    // Check if this is an OAuth profile picture
+                                    $isOAuthPicture = filter_var($currentUser['profile_picture'], FILTER_VALIDATE_URL) || 
+                                                     strpos($currentUser['profile_picture'], 'googleusercontent.com') !== false ||
+                                                     strpos($currentUser['profile_picture'], 'githubusercontent.com') !== false ||
+                                                     strpos($currentUser['profile_picture'], 'licdn.com') !== false;
+                                    
+                                    if ($isOAuthPicture): ?>
+                                        <div class="position-absolute top-0 start-0">
+                                            <span class="badge oauth-badge" title="OAuth Profile Picture">
+                                                <i class="fas fa-link"></i> OAuth
+                                            </span>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                <?php else: ?>
+                                    <i class="fas fa-user-circle fa-5x text-muted"></i>
+                                <?php endif; ?>
+                                
+                                <!-- Upload button overlay -->
+                                <div class="position-absolute bottom-0 end-0">
+                                    <button type="button" class="btn btn-primary btn-sm rounded-circle" 
+                                            onclick="document.getElementById('profilePictureInput').click();"
+                                            title="Change Profile Picture">
+                                        <i class="fas fa-camera"></i>
+                                    </button>
+                                </div>
+                                
+                                <!-- Hidden file input -->
+                                <input type="file" id="profilePictureInput" 
+                                       accept="image/jpeg,image/jpg,image/png,image/gif" 
+                                       style="display: none;"
+                                       onchange="uploadProfilePicture(this)">
                             </div>
+                            
+                            <!-- Upload progress -->
+                            <div id="uploadProgress" class="progress mt-2" style="display: none;">
+                                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            
+                            <!-- OAuth user info -->
+                            <?php if (!empty($currentUser['oauth_provider']) && $currentUser['oauth_provider'] !== 'email'): ?>
+                                <div class="oauth-provider-info">
+                                    <i class="fab fa-<?php echo strtolower($currentUser['oauth_provider']); ?>"></i>
+                                    Connected via <?php echo ucfirst($currentUser['oauth_provider']); ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                         <div class="col-md-9">
                             <h4><?php echo htmlspecialchars($currentUser['username']); ?></h4>

@@ -3,10 +3,33 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Login</h5>
+                <h5 class="modal-title">
+                    <i class="fas fa-sign-in-alt me-2"></i>Login to Your Account
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <!-- OAuth Login Options -->
+                <div class="mb-4">
+                    <p class="text-center text-muted mb-3">Quick login with</p>
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-primary" onclick="loginWithLinkedIn()">
+                            <i class="fab fa-linkedin me-2"></i>Continue with LinkedIn
+                        </button>
+                        <button type="button" class="btn btn-outline-dark" onclick="loginWithGoogle()">
+                            <i class="fab fa-google me-2"></i>Continue with Google
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="loginWithGitHub()">
+                            <i class="fab fa-github me-2"></i>Continue with GitHub
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="text-center mb-3">
+                    <span class="text-muted">or</span>
+                </div>
+                
+                <!-- Email Login Form -->
                 <form id="loginForm">
                     <div class="mb-3">
                         <label for="loginUsername" class="form-label">Username or Email</label>
@@ -16,9 +39,17 @@
                         <label for="loginPassword" class="form-label">Password</label>
                         <input type="password" class="form-control" id="loginPassword" required>
                     </div>
+                    <div class="mb-3">
+                        <a href="#" onclick="showForgotPasswordModal()" class="text-decoration-none">
+                            <small>Forgot your password?</small>
+                        </a>
+                    </div>
                     <div id="loginMessage" class="alert" style="display: none;"></div>
-                    <button type="submit" class="btn btn-primary w-100">Login</button>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login
+                    </button>
                 </form>
+                
                 <hr>
                 <p class="text-center mb-0">
                     Don't have an account? 
@@ -34,11 +65,48 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Register</h5>
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>Create Your Account
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <!-- OAuth Registration Options -->
+                <div class="mb-4">
+                    <p class="text-center text-muted mb-3">Quick registration with</p>
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-primary" onclick="registerWithLinkedIn()">
+                            <i class="fab fa-linkedin me-2"></i>Sign up with LinkedIn
+                        </button>
+                        <button type="button" class="btn btn-outline-dark" onclick="registerWithGoogle()">
+                            <i class="fab fa-google me-2"></i>Sign up with Google
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="registerWithGitHub()">
+                            <i class="fab fa-github me-2"></i>Sign up with GitHub
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="text-center mb-3">
+                    <span class="text-muted">or</span>
+                </div>
+                
+                <!-- Email Registration Form -->
                 <form id="registerForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="registerFirstName" class="form-label">First Name</label>
+                                <input type="text" class="form-control" id="registerFirstName">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="registerLastName" class="form-label">Last Name</label>
+                                <input type="text" class="form-control" id="registerLastName">
+                            </div>
+                        </div>
+                    </div>
                     <div class="mb-3">
                         <label for="registerUsername" class="form-label">Username</label>
                         <input type="text" class="form-control" id="registerUsername" required>
@@ -50,10 +118,24 @@
                     <div class="mb-3">
                         <label for="registerPassword" class="form-label">Password</label>
                         <input type="password" class="form-control" id="registerPassword" required>
+                        <div class="form-text">
+                            <small>Password must be at least 8 characters long</small>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="registerTerms" required>
+                            <label class="form-check-label" for="registerTerms">
+                                I agree to the <a href="#" target="_blank">Terms of Service</a> and <a href="#" target="_blank">Privacy Policy</a>
+                            </label>
+                        </div>
                     </div>
                     <div id="registerMessage" class="alert" style="display: none;"></div>
-                    <button type="submit" class="btn btn-primary w-100">Register</button>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-user-plus me-2"></i>Create Account
+                    </button>
                 </form>
+                
                 <hr>
                 <p class="text-center mb-0">
                     Already have an account? 
@@ -304,6 +386,66 @@
                 <button type="button" class="btn btn-danger" onclick="handleUnsubscribeConfirm()">
                     <i class="fas fa-unlink me-2"></i>Yes, Unsubscribe
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Forgot Password Modal -->
+<div class="modal fade" id="forgotPasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-key me-2"></i>Reset Your Password
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Enter your email address and we'll send you a link to reset your password.</p>
+                <form id="forgotPasswordForm">
+                    <div class="mb-3">
+                        <label for="forgotPasswordEmail" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="forgotPasswordEmail" required>
+                    </div>
+                    <div id="forgotPasswordMessage" class="alert" style="display: none;"></div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-paper-plane me-2"></i>Send Reset Link
+                    </button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Email Verification Modal -->
+<div class="modal fade" id="emailVerificationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-envelope me-2 text-primary"></i>Verify Your Email
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <i class="fas fa-envelope-open-text fa-3x text-primary mb-3"></i>
+                    <h5>Check Your Email</h5>
+                    <p class="text-muted">We've sent a verification link to your email address.</p>
+                </div>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Didn't receive the email?</strong> Check your spam folder or 
+                    <a href="#" onclick="resendVerificationEmail()" class="alert-link">click here to resend</a>.
+                </div>
+                <div id="verificationMessage" class="alert" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>

@@ -502,5 +502,47 @@ class Post {
             return [];
         }
     }
+    
+    // Get posts with bookmark information for a specific user
+    public function getPostsWithBookmarkInfo($userId, $limit = null, $offset = 0, $isPremium = false) {
+        try {
+            $query = "SELECT p.*, c.name as category_name, c.slug as category_slug, 
+                             u.username as author_name,
+                             GROUP_CONCAT(t.name) as tags,
+                             CASE WHEN b.id IS NOT NULL THEN 1 ELSE 0 END as is_bookmarked
+                      FROM " . $this->table . " p
+                      LEFT JOIN categories c ON p.category_id = c.id
+                      LEFT JOIN users u ON p.author_id = u.id
+                      LEFT JOIN post_tags pt ON p.id = pt.post_id
+                      LEFT JOIN tags t ON pt.tag_id = t.id
+                      LEFT JOIN bookmarks b ON p.id = b.post_id AND b.user_id = :user_id
+                      WHERE p.status = 'published'";
+            
+            if (!$isPremium) {
+                $query .= " AND p.is_premium = FALSE";
+            }
+            
+            $query .= " GROUP BY p.id ORDER BY p.published_at DESC";
+            
+            if ($limit) {
+                $query .= " LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
+            }
+
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+            $stmt->execute();
+            $posts = $stmt->fetchAll();
+            
+            // Convert markdown images to HTML for each post
+            foreach ($posts as &$post) {
+                $post['content'] = $this->convertMarkdownImages($post['content']);
+            }
+            
+            return $posts;
+        } catch (Exception $e) {
+            error_log("Error getting posts with bookmark info: " . $e->getMessage());
+            return [];
+        }
+    }
 }
 ?> 

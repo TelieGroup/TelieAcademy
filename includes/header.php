@@ -15,9 +15,30 @@ if ($isLoggedIn) {
     $isAdmin = $currentUser && $currentUser['is_admin'];
     
     // Get user's newsletter subscription
-            $userSubscription = $newsletter->getUserSubscription($currentUser['id'], $currentUser['email']);
+    $userSubscription = $newsletter->getUserSubscription($currentUser['id'], $currentUser['email']);
+}
+
+// Check for authentication messages
+$authMessage = $_SESSION['auth_message'] ?? '';
+$authMessageType = $_SESSION['auth_message_type'] ?? '';
+$authError = $_SESSION['auth_error'] ?? '';
+unset($_SESSION['auth_message'], $_SESSION['auth_message_type'], $_SESSION['auth_error']);
+
+// Combine auth messages
+if (!empty($authError)) {
+    $authMessage = $authError;
+    $authMessageType = 'error';
 }
 ?>
+
+<!-- Authentication Message -->
+<?php if (!empty($authMessage)): ?>
+<div class="alert alert-<?php echo $authMessageType === 'error' ? 'danger' : $authMessageType; ?> alert-dismissible fade show" role="alert" style="margin-top: 76px;">
+    <i class="fas fa-<?php echo $authMessageType === 'success' ? 'check-circle' : ($authMessageType === 'error' ? 'exclamation-triangle' : 'info-circle'); ?> me-2"></i>
+    <?php echo htmlspecialchars($authMessage); ?>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<?php endif; ?>
 
 <!-- Navigation -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
@@ -31,23 +52,34 @@ if ($isLoggedIn) {
         </button>
         
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav me-auto">
-                <li class="nav-item">
-                    <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>" href="index.php">Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'categories.php' ? 'active' : ''; ?>" href="categories.php">Categories</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'tags.php' ? 'active' : ''; ?>" href="tags.php">Tags</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'posts.php' ? 'active' : ''; ?>" href="posts.php">All Posts</a>
-                </li>
-                <li class="nav-item dropdown">
+            <!-- Main Navigation Links -->
+            <div class="navbar-nav me-auto mb-2 mb-lg-0">
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>" href="index.php">Home</a>
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'categories.php' ? 'active' : ''; ?>" href="categories.php">Categories</a>
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'posts.php' ? 'active' : ''; ?>" href="posts.php">All Posts</a>
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'tags.php' ? 'active' : ''; ?>" href="tags.php">Tags</a>
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'search.php' ? 'active' : ''; ?>" href="search.php">
+                    <i class="fas fa-search me-1"></i>Search
+                </a>
+            </div>
+            
+            <!-- Search Bar - Responsive Design -->
+            <form class="d-flex me-2 me-lg-3" role="search" id="searchForm">
+                <div class="input-group input-group-sm">
+                    <input class="form-control" type="search" placeholder="Search..." aria-label="Search" id="searchInput">
+                    <button class="btn btn-outline-light" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+            
+            <!-- User Actions Section -->
+            <div class="navbar-nav align-items-center">
+                <!-- Newsletter Subscription -->
+                <div class="nav-item dropdown me-2">
                     <?php if ($userSubscription && $userSubscription['is_active']): ?>
                         <a class="nav-link dropdown-toggle" href="#" id="newsletterDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-envelope"></i> Newsletter 
+                            <i class="fas fa-envelope"></i>
                             <span class="badge bg-<?php echo $userSubscription['subscription_type'] === 'premium' ? 'warning' : 'success'; ?> ms-1">
                                 <?php echo ucfirst($userSubscription['subscription_type']); ?>
                             </span>
@@ -73,33 +105,59 @@ if ($isLoggedIn) {
                         </ul>
                     <?php else: ?>
                         <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#newsletterModal">
-                            <i class="fas fa-envelope"></i> Newsletter
+                            <i class="fas fa-envelope"></i>
                         </a>
                     <?php endif; ?>
-                </li>
-            </ul>
-            
-            <div class="d-flex align-items-center">
-                <span class="text-white" id="loginBtnSpan" style="display: none;">
-                <button class="btn btn-outline-primary me-2" id="loginBtn" data-bs-toggle="modal" data-bs-target="#loginModal">
-                    <i class="fas fa-user"></i> Login
-                </button>
-                </span>
-                <span id="userInfo" class="text-white" style="display: none;">
-                    <span style="color:#007bff">Welcome,</span> <span id="username"></span>!
-                    <a href="profile.php" class="btn btn-outline-info btn-sm ms-2" id="profileBtn">
-                        <i class="fas fa-user"></i> Profile
-                    </a>
-                    <?php if ($isAdmin): ?>
-                    <a href="admin/" class="btn btn-outline-warning btn-sm ms-2" id="adminBtn">
-                        <i class="fas fa-cog"></i> Admin
-                    </a>
-                    <?php endif; ?>
-                    <button class="btn btn-outline-primary btn-sm ms-2" id="logoutBtn">Logout</button>
-                </span>
-                <button class="btn btn-outline-primary me-2 ms-2" id="darkModeToggle">
-                    <i class="fas fa-moon"></i>
-                </button>
+                </div>
+                
+                <!-- Dark Mode Toggle -->
+                <div class="nav-item me-2">
+                    <button class="btn btn-outline-primary btn-sm" id="darkModeToggle" title="Toggle Dark Mode">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+                
+                <!-- User Authentication -->
+                <div class="nav-item">
+                    <span class="text-white" id="loginBtnSpan" style="display: none;">
+                        <button class="btn btn-outline-primary btn-sm" id="loginBtn" data-bs-toggle="modal" data-bs-target="#loginModal">
+                            <i class="fas fa-user"></i> Login
+                        </button>
+                    </span>
+                    <span id="userInfo" class="text-white" style="display: none;">
+                        <div class="d-flex align-items-center">
+                            <div class="me-2">
+                                <?php if ($isLoggedIn && !empty($currentUser['profile_picture'])): ?>
+                                    <img src="<?php echo htmlspecialchars($currentUser['profile_picture']); ?>" 
+                                         alt="Profile Picture" 
+                                         class="rounded-circle" 
+                                         style="width: 28px; height: 28px; object-fit: cover;">
+                                <?php else: ?>
+                                    <i class="fas fa-user-circle text-light"></i>
+                                <?php endif; ?>
+                            </div>
+                            <div class="d-none d-lg-block me-2">
+                                <small>
+                                    <span id="username"></span>!
+                                </small>
+                            </div>
+                            <div class="d-flex flex-column flex-sm-row gap-1">
+                                <a href="bookmarks.php" class="btn btn-outline-primary btn-sm" id="bookmarksBtn" title="My Bookmarks">
+                                    <i class="fas fa-bookmark"></i>
+                                </a>
+                                <a href="profile.php" class="btn btn-outline-primary btn-sm" id="profileBtn" title="Profile">
+                                    <i class="fas fa-user"></i>
+                                </a>
+                                <?php if ($isAdmin): ?>
+                                <a href="admin/" class="btn btn-outline-warning btn-sm" id="adminBtn" title="Admin Panel">
+                                    <i class="fas fa-cog"></i>
+                                </a>
+                                <?php endif; ?>
+                                <button class="btn btn-outline-primary btn-sm" id="logoutBtn" title="Logout">Logout</button>
+                            </div>
+                        </div>
+                    </span>
+                </div>
             </div>
         </div>
     </div>

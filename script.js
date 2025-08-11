@@ -65,8 +65,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize voting functionality
     initializeVoting();
     
+    // Initialize bookmark functionality
+    initializeBookmarks();
+    
     // Initialize newsletter modal
     initializeNewsletterModal();
+    
+    // Initialize search functionality
+    initializeSearch();
+    
+    // Initialize back to top button
+    initializeBackToTop();
     
     // Debug voting system - can be removed later
     // console.log('Page loaded - Auth Status:', {
@@ -179,7 +188,15 @@ function handleRegister(event) {
     const username = document.getElementById('registerUsername').value;
     const email = document.getElementById('registerEmail').value;
     const password = document.getElementById('registerPassword').value;
+    const firstName = document.getElementById('registerFirstName')?.value || null;
+    const lastName = document.getElementById('registerLastName')?.value || null;
     const messageDiv = document.getElementById('registerMessage');
+    
+    // Validate password length
+    if (password.length < 8) {
+        showAlert('Password must be at least 8 characters long', 'danger', messageDiv);
+        return;
+    }
     
     fetch('api/auth.php', {
         method: 'POST',
@@ -190,19 +207,25 @@ function handleRegister(event) {
             action: 'register',
             username: username,
             email: email,
-            password: password
+            password: password,
+            first_name: firstName,
+            last_name: lastName
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showAlert(data.message, 'success');
+            // Store email for verification modal
+            localStorage.setItem('pending_verification_email', email);
             
-            // Switch to login modal
+            // Close register modal
             const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
-            const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
             registerModal.hide();
-            loginModal.show();
+            
+            // Show email verification modal
+            showEmailVerificationModal();
+            
+            showAlert(data.message, 'success');
         } else {
             showAlert(data.message, 'danger', messageDiv);
         }
@@ -214,6 +237,19 @@ function handleRegister(event) {
 }
 
 function handleLogout() {
+    // Show confirmation dialog
+    if (!confirm('Are you sure you want to logout?')) {
+        return;
+    }
+    
+    // Show loading state
+    const logoutBtn = document.getElementById('logoutBtn');
+    const originalText = logoutBtn ? logoutBtn.innerHTML : 'Logout';
+    if (logoutBtn) {
+        logoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging out...';
+        logoutBtn.disabled = true;
+    }
+    
     fetch('api/auth.php', {
         method: 'POST',
         headers: {
@@ -221,7 +257,12 @@ function handleLogout() {
         },
         body: JSON.stringify({ action: 'logout' })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             showAlert(data.message, 'success');
@@ -231,12 +272,38 @@ function handleLogout() {
             isLoggedIn = false;
             currentUser = null;
             
-            setTimeout(() => location.reload(), 1000);
+            // Clear any stored user data
+            localStorage.removeItem('userData');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('oauth_state');
+            localStorage.removeItem('pending_verification_email');
+            localStorage.removeItem('subscribedEmail');
+            localStorage.removeItem('subscriberPreferences');
+            localStorage.removeItem('subscriberFrequency');
+            localStorage.removeItem('subscriptionType');
+            
+            // Clear any OAuth-related cookies if they exist
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            
+            // Redirect to home page after a short delay
+            setTimeout(() => {
+                window.location.href = 'index.php';
+            }, 1500);
+        } else {
+            throw new Error(data.message || 'Logout failed');
         }
     })
     .catch(error => {
         console.error('Logout error:', error);
         showAlert('Logout failed. Please try again.', 'danger');
+        
+        // Restore button state
+        if (logoutBtn) {
+            logoutBtn.innerHTML = originalText;
+            logoutBtn.disabled = false;
+        }
     });
 }
 
@@ -369,72 +436,72 @@ function initializeNewsletterForms() {
 }
 
 // Hide newsletter forms for subscribed users
-function hideNewsletterFormsForSubscriber(email) {
-    // Hide all newsletter forms and show subscribed content
-    const newsletterForms = document.querySelectorAll('.newsletter-form');
-    newsletterForms.forEach(form => {
-        form.innerHTML = `
-            <div class="text-center py-4">
-                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                <h5 class="text-success mb-3">You're Subscribed!</h5>
-                <p class="text-muted mb-3">You're receiving our newsletter at <strong>${email}</strong></p>
-                <div class="bg-light p-3 rounded mb-3">
-                    <h6 class="mb-2">Latest Updates:</h6>
-                    <ul class="list-unstyled small text-muted">
-                        <li><i class="fas fa-arrow-right me-2"></i>New JavaScript tutorials added</li>
-                        <li><i class="fas fa-arrow-right me-2"></i>React hooks guide published</li>
-                        <li><i class="fas fa-arrow-right me-2"></i>Python for beginners series</li>
-                        <li><i class="fas fa-arrow-right me-2"></i>Web development tips weekly</li>
-                    </ul>
-                </div>
-                <button class="btn btn-outline-primary btn-sm" onclick="changeSubscriptionEmail()">
-                    <i class="fas fa-edit me-1"></i>Change Email
-                </button>
-            </div>
-        `;
-    });
+// function hideNewsletterFormsForSubscriber(email) {
+//     // Hide all newsletter forms and show subscribed content
+//     const newsletterForms = document.querySelectorAll('.newsletter-form');
+//     newsletterForms.forEach(form => {
+//         form.innerHTML = `
+//             <div class="text-center py-4">
+//                 <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+//                 <h5 class="text-success mb-3">You're Subscribed!</h5>
+//                 <p class="text-muted mb-3">You're receiving our newsletter at <strong>${email}</strong></p>
+//                 <div class="bg-light p-3 rounded mb-3">
+//                     <h6 class="mb-2">Latest Updates:</h6>
+//                     <ul class="list-unstyled small text-muted">
+//                         <li><i class="fas fa-arrow-right me-2"></i>New JavaScript tutorials added</li>
+//                         <li><i class="fas fa-arrow-right me-2"></i>React hooks guide published</li>
+//                         <li><i class="fas fa-arrow-right me-2"></i>Python for beginners series</li>
+//                         <li><i class="fas fa-arrow-right me-2"></i>Web development tips weekly</li>
+//                     </ul>
+//                 </div>
+//                 <button class="btn btn-outline-primary btn-sm" onclick="changeSubscriptionEmail()">
+//                     <i class="fas fa-edit me-1"></i>Change Email
+//                 </button>
+//             </div>
+//         `;
+//     });
 
-    // Update newsletter links in navigation and footer
-    const newsletterLinks = document.querySelectorAll('a[data-bs-target="#newsletterModal"], a[href*="newsletter"]');
-    newsletterLinks.forEach(link => {
-        link.innerHTML = '<i class="fas fa-envelope me-1"></i>Newsletter (Subscribed)';
-        link.classList.add('text-success');
-        link.onclick = function(e) {
-            e.preventDefault();
-            showSubscribedModal(email);
-        };
-    });
-}
+//     // Update newsletter links in navigation and footer
+//     const newsletterLinks = document.querySelectorAll('a[data-bs-target="#newsletterModal"], a[href*="newsletter"]');
+//     newsletterLinks.forEach(link => {
+//         link.innerHTML = '<i class="fas fa-envelope me-1"></i>Newsletter (Subscribed)';
+//         link.classList.add('text-success');
+//         link.onclick = function(e) {
+//             e.preventDefault();
+//             showSubscribedModal(email);
+//         };
+//     });
+// }
 
 // Show subscribed modal instead of newsletter modal
-function showSubscribedModal(email) {
-    const modal = document.getElementById('newsletterModal');
-    if (modal) {
-        const modalBody = modal.querySelector('.modal-body');
-        modalBody.innerHTML = `
-            <div class="text-center py-4">
-                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                <h5 class="text-success mb-3">You're Already Subscribed!</h5>
-                <p class="text-muted mb-3">You're receiving our newsletter at <strong>${email}</strong></p>
-                <div class="bg-light p-3 rounded mb-3">
-                    <h6 class="mb-2">Latest Updates:</h6>
-                    <ul class="list-unstyled small text-muted">
-                        <li><i class="fas fa-arrow-right me-2"></i>New JavaScript tutorials added</li>
-                        <li><i class="fas fa-arrow-right me-2"></i>React hooks guide published</li>
-                        <li><i class="fas fa-arrow-right me-2"></i>Python for beginners series</li>
-                        <li><i class="fas fa-arrow-right me-2"></i>Web development tips weekly</li>
-                    </ul>
-                </div>
-                <button class="btn btn-outline-primary btn-sm" onclick="changeSubscriptionEmail()">
-                    <i class="fas fa-edit me-1"></i>Change Email
-                </button>
-            </div>
-        `;
+// function showSubscribedModal(email) {
+//     const modal = document.getElementById('newsletterModal');
+//     if (modal) {
+//         const modalBody = modal.querySelector('.modal-body');
+//         modalBody.innerHTML = `
+//             <div class="text-center py-4">
+//                 <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+//                 <h5 class="text-success mb-3">You're Already Subscribed!</h5>
+//                 <p class="text-muted mb-3">You're receiving our newsletter at <strong>${email}</strong></p>
+//                 <div class="bg-light p-3 rounded mb-3">
+//                     <h6 class="mb-2">Latest Updates:</h6>
+//                     <ul class="list-unstyled small text-muted">
+//                         <li><i class="fas fa-arrow-right me-2"></i>New JavaScript tutorials added</li>
+//                         <li><i class="fas fa-arrow-right me-2"></i>React hooks guide published</li>
+//                         <li><i class="fas fa-arrow-right me-2"></i>Python for beginners series</li>
+//                         <li><i class="fas fa-arrow-right me-2"></i>Web development tips weekly</li>
+//                     </ul>
+//                 </div>
+//                 <button class="btn btn-outline-primary btn-sm" onclick="changeSubscriptionEmail()">
+//                     <i class="fas fa-edit me-1"></i>Change Email
+//                 </button>
+//             </div>
+//         `;
         
-        const bsModal = new bootstrap.Modal(modal);
-        bsModal.show();
-    }
-}
+//         const bsModal = new bootstrap.Modal(modal);
+//         bsModal.show();
+//     }
+// }
 
 // Change subscription email
 function changeSubscriptionEmail() {
@@ -1246,6 +1313,224 @@ function showRegisterModal() {
     }, 300);
 }
 
+// OAuth Functions
+function loginWithLinkedIn() {
+    // Check if LinkedIn is configured
+    fetch('api/auth.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            action: 'check_oauth_status',
+            provider: 'linkedin'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.configured) {
+            // Generate OAuth state
+            const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            
+            // Clear any existing OAuth state first
+            localStorage.removeItem('oauth_state');
+            
+            // Store new OAuth state
+            localStorage.setItem('oauth_state', state);
+            
+            // Redirect to LinkedIn OAuth
+            const linkedinUrl = `auth/linkedin-auth.php?state=${state}`;
+            window.location.href = linkedinUrl;
+        } else {
+            showAlert('LinkedIn OAuth is not configured. Please contact the administrator.', 'warning');
+        }
+    })
+    .catch(error => {
+        console.error('LinkedIn OAuth error:', error);
+        showAlert('LinkedIn OAuth is not configured. Please contact the administrator.', 'warning');
+    });
+}
+
+function registerWithLinkedIn() {
+    // Same as login for now - LinkedIn will create account if it doesn't exist
+    loginWithLinkedIn();
+}
+
+function loginWithGoogle() {
+    console.log('loginWithGoogle function called');
+    
+    // Check if Google is configured
+    fetch('api/auth.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            action: 'check_oauth_status',
+            provider: 'google'
+        })
+    })
+    .then(response => {
+        console.log('Google OAuth check response:', response);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Google OAuth check data:', data);
+        if (data.configured) {
+            console.log('Google OAuth is configured, redirecting...');
+            // Generate OAuth state
+            const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            
+            // Clear any existing OAuth state first
+            localStorage.removeItem('oauth_state');
+            
+            // Store new OAuth state
+            localStorage.setItem('oauth_state', state);
+            
+            // Redirect to Google OAuth
+            const googleUrl = `auth/google-auth.php?state=${state}`;
+            console.log('Redirecting to:', googleUrl);
+            window.location.href = googleUrl;
+        } else {
+            console.log('Google OAuth is not configured');
+            showAlert('Google OAuth is not configured. Please contact the administrator.', 'warning');
+        }
+    })
+    .catch(error => {
+        console.error('Google OAuth error:', error);
+        showAlert('Google OAuth is not configured. Please contact the administrator.', 'warning');
+    });
+}
+
+function registerWithGoogle() {
+    // Same as login for now - Google will create account if it doesn't exist
+    loginWithGoogle();
+}
+
+function loginWithGitHub() {
+    // Check if GitHub is configured
+    fetch('api/auth.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            action: 'check_oauth_status',
+            provider: 'github'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.configured) {
+            // Generate OAuth state
+            const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            
+            // Clear any existing OAuth state first
+            localStorage.removeItem('oauth_state');
+            
+            // Store new OAuth state
+            localStorage.setItem('oauth_state', state);
+            
+            // Redirect to GitHub OAuth
+            const githubUrl = `auth/github-auth.php?state=${state}`;
+            window.location.href = githubUrl;
+        } else {
+            showAlert('GitHub OAuth is not configured. Please contact the administrator.', 'warning');
+        }
+    })
+    .catch(error => {
+        console.error('GitHub OAuth error:', error);
+        showAlert('GitHub OAuth is not configured. Please contact the administrator.', 'warning');
+    });
+}
+
+function registerWithGitHub() {
+    // Same as login for now - GitHub will create account if it doesn't exist
+    loginWithGitHub();
+}
+
+// Email Verification Functions
+function showEmailVerificationModal() {
+    const modal = new bootstrap.Modal(document.getElementById('emailVerificationModal'));
+    modal.show();
+}
+
+function resendVerificationEmail() {
+    const email = localStorage.getItem('pending_verification_email');
+    if (!email) {
+        showAlert('No email found for verification', 'error');
+        return;
+    }
+    
+    fetch('api/auth.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            action: 'resend_verification',
+            email: email
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Verification email sent successfully!', 'success');
+        } else {
+            showAlert(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error resending verification:', error);
+        showAlert('Failed to resend verification email', 'error');
+    });
+}
+
+// Forgot Password Functions
+function showForgotPasswordModal() {
+    // Hide login modal
+    const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+    if (loginModal) {
+        loginModal.hide();
+    }
+    
+    // Show forgot password modal
+    const forgotPasswordModal = new bootstrap.Modal(document.getElementById('forgotPasswordModal'));
+    forgotPasswordModal.show();
+}
+
+function handleForgotPassword(event) {
+    event.preventDefault();
+    
+    const email = document.getElementById('forgotPasswordEmail').value;
+    const messageDiv = document.getElementById('forgotPasswordMessage');
+    
+    fetch('api/auth.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            action: 'forgot_password',
+            email: email
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success', messageDiv);
+            // Clear form
+            document.getElementById('forgotPasswordForm').reset();
+        } else {
+            showAlert(data.message, 'danger', messageDiv);
+        }
+    })
+    .catch(error => {
+        console.error('Forgot password error:', error);
+        showAlert('Failed to send reset email', 'error', messageDiv);
+    });
+}
+
 // Select subscription type
 function selectSubscriptionType(button) {
     if (!isLoggedIn) {
@@ -1480,4 +1765,430 @@ function subscribeNewsletterAdvanced() {
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
     });
-} 
+}
+
+// Profile Picture Upload Function
+function uploadProfilePicture(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+        showAlert('Invalid file type. Only JPG, PNG, and GIF are allowed.', 'danger');
+        return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+        showAlert('File size too large. Maximum size is 5MB.', 'danger');
+        return;
+    }
+
+    // Show progress bar
+    const progressBar = document.getElementById('uploadProgress');
+    const progressBarInner = progressBar.querySelector('.progress-bar');
+    progressBar.style.display = 'block';
+    progressBarInner.style.width = '0%';
+
+    // Simulate progress
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        progress += 10;
+        progressBarInner.style.width = progress + '%';
+        if (progress >= 90) {
+            clearInterval(progressInterval);
+        }
+    }, 100);
+
+    // Create FormData
+    const formData = new FormData();
+    formData.append('profile_picture', file);
+
+    // Upload file
+    fetch('api/profile-picture.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        clearInterval(progressInterval);
+        progressBarInner.style.width = '100%';
+        
+        if (data.success) {
+            // Update the profile picture display
+            const profileAvatar = document.querySelector('.profile-avatar');
+            const existingImg = profileAvatar.querySelector('img');
+            const existingIcon = profileAvatar.querySelector('i');
+
+            if (existingImg) {
+                existingImg.src = data.profile_picture + '?t=' + new Date().getTime();
+            } else if (existingIcon) {
+                // Replace icon with image
+                existingIcon.remove();
+                const newImg = document.createElement('img');
+                newImg.src = data.profile_picture + '?t=' + new Date().getTime();
+                newImg.alt = 'Profile Picture';
+                newImg.className = 'rounded-circle img-fluid';
+                newImg.style = 'width: 120px; height: 120px; object-fit: cover;';
+                profileAvatar.insertBefore(newImg, profileAvatar.firstChild);
+            }
+
+            // Show success message with additional info for OAuth users
+            let successMessage = 'Profile picture updated successfully!';
+            if (data.replaced_oauth_picture) {
+                successMessage = 'Profile picture updated successfully! You\'ve replaced your OAuth profile picture with a custom one.';
+            }
+            
+            showAlert(successMessage, 'success');
+            
+        } else {
+            showAlert(data.message || 'Failed to upload profile picture.', 'danger');
+        }
+    })
+    .catch(error => {
+        clearInterval(progressInterval);
+        console.error('Profile picture upload error:', error);
+        showAlert('Failed to upload profile picture. Please try again.', 'danger');
+    })
+    .finally(() => {
+        // Hide progress bar after a short delay
+        setTimeout(() => {
+            progressBar.style.display = 'none';
+            progressBarInner.style.width = '0%';
+        }, 1000);
+        
+        // Clear the input
+        input.value = '';
+    });
+}
+
+// Search Functionality
+function initializeSearch() {
+    const searchForm = document.getElementById('searchForm');
+    const searchInput = document.getElementById('searchInput');
+    
+    if (searchForm) {
+        searchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const query = searchInput.value.trim();
+            
+            if (query.length > 0) {
+                window.location.href = `search.php?q=${encodeURIComponent(query)}`;
+            }
+        });
+    }
+    
+    if (window.location.pathname.includes('search.php')) {
+        initializeSearchSuggestions();
+    }
+    
+    // Initialize search suggestions for all search inputs
+    if (searchInput) {
+        initializeSearchSuggestions(searchInput);
+    }
+}
+
+// Search Suggestions Functionality
+function initializeSearchSuggestions(searchInput = null) {
+    const input = searchInput || document.getElementById('searchInput');
+    if (!input) return;
+    
+    let suggestionsContainer = null;
+    let debounceTimer = null;
+    
+    // Create suggestions container
+    function createSuggestionsContainer() {
+        if (suggestionsContainer) return;
+        
+        suggestionsContainer = document.createElement('div');
+        suggestionsContainer.className = 'search-suggestions position-absolute w-100';
+        suggestionsContainer.style.cssText = 'top: 100%; left: 0; display: none; max-height: 400px; overflow-y: auto;';
+        
+        // Insert after the search input's parent
+        const inputGroup = input.closest('.input-group');
+        if (inputGroup) {
+            inputGroup.style.position = 'relative';
+            inputGroup.appendChild(suggestionsContainer);
+        }
+    }
+    
+    // Show suggestions
+    function showSuggestions(suggestions) {
+        if (!suggestionsContainer) return;
+        
+        if (suggestions.length === 0) {
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+        
+        suggestionsContainer.innerHTML = suggestions.map(item => `
+            <div class="suggestion-item p-2 border-bottom" style="cursor: pointer;">
+                <div class="d-flex align-items-center">
+                    <i class="${item.icon} me-2 text-muted"></i>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">${item.title}</div>
+                        ${item.category ? `<small class="text-muted">${item.category}</small>` : ''}
+                        ${item.description ? `<small class="text-muted d-block">${item.description}</small>` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        suggestionsContainer.style.display = 'block';
+        
+        // Add click handlers
+        const items = suggestionsContainer.querySelectorAll('.suggestion-item');
+        items.forEach((item, index) => {
+            item.addEventListener('click', () => {
+                window.location.href = suggestions[index].url;
+            });
+            
+            item.addEventListener('mouseenter', () => {
+                item.style.backgroundColor = '#f8f9fa';
+            });
+            
+            item.addEventListener('mouseleave', () => {
+                item.style.backgroundColor = '';
+            });
+        });
+    }
+    
+    // Fetch suggestions from API
+    async function fetchSuggestions(query) {
+        if (query.length < 2) {
+            showSuggestions([]);
+            return;
+        }
+        
+        try {
+            const response = await fetch(`api/search_suggestions.php?q=${encodeURIComponent(query)}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                showSuggestions(data.suggestions);
+            } else {
+                showSuggestions([]);
+            }
+        } catch (error) {
+            console.error('Error fetching suggestions:', error);
+            showSuggestions([]);
+        }
+    }
+    
+    // Handle input changes
+    input.addEventListener('input', function() {
+        const query = this.value.trim();
+        
+        // Clear previous timer
+        if (debounceTimer) {
+            clearTimeout(debounceTimer);
+        }
+        
+        // Set new timer for debouncing
+        debounceTimer = setTimeout(() => {
+            fetchSuggestions(query);
+        }, 300);
+    });
+    
+    // Handle focus
+    input.addEventListener('focus', function() {
+        createSuggestionsContainer();
+        const query = this.value.trim();
+        if (query.length >= 2) {
+            fetchSuggestions(query);
+        }
+    });
+    
+    // Handle blur (hide suggestions after a delay)
+    input.addEventListener('blur', function() {
+        setTimeout(() => {
+            if (suggestionsContainer) {
+                suggestionsContainer.style.display = 'none';
+            }
+        }, 200);
+    });
+    
+    // Handle escape key
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && suggestionsContainer) {
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+}
+
+// Back to Top Button Functionality
+function initializeBackToTop() {
+    // Create back to top button
+    const backToTopBtn = document.createElement('button');
+    backToTopBtn.id = 'backToTopBtn';
+    backToTopBtn.className = 'btn btn-primary position-fixed';
+    backToTopBtn.style.cssText = 'bottom: 20px; right: 20px; z-index: 1000; display: none; border-radius: 50%; width: 50px; height: 50px; padding: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.15);';
+    backToTopBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+    backToTopBtn.title = 'Back to Top';
+    
+    // Add to body
+    document.body.appendChild(backToTopBtn);
+    
+    // Show/hide button based on scroll position
+    window.addEventListener('scroll', function() {
+        if (window.pageYOffset > 300) {
+            backToTopBtn.style.display = 'block';
+            backToTopBtn.classList.add('fade-in');
+        } else {
+            backToTopBtn.style.display = 'none';
+            backToTopBtn.classList.remove('fade-in');
+        }
+    });
+    
+    // Smooth scroll to top when clicked
+    backToTopBtn.addEventListener('click', function() {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
+    
+    // Add hover effects
+    backToTopBtn.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-2px)';
+        this.style.boxShadow = '0 6px 16px rgba(0,0,0,0.2)';
+    });
+    
+    backToTopBtn.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    });
+}
+
+// Bookmark Functionality
+function initializeBookmarks() {
+    // Add click event listeners to all bookmark buttons
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.bookmark-btn')) {
+            e.preventDefault();
+            const button = e.target.closest('.bookmark-btn');
+            const postId = button.dataset.postId;
+            
+            if (!postId) {
+                console.error('No post ID found for bookmark button');
+                return;
+            }
+            
+            handleBookmarkClick(button, postId);
+        }
+    });
+    
+    // Update bookmark button states for logged-in users
+    if (isLoggedIn && currentUser) {
+        updateBookmarkButtonStates();
+    }
+}
+
+async function handleBookmarkClick(button, postId) {
+    if (!isLoggedIn) {
+        showLoginModal();
+        return;
+    }
+    
+    try {
+        const isCurrentlyBookmarked = button.classList.contains('bookmarked');
+        const method = isCurrentlyBookmarked ? 'DELETE' : 'POST';
+        
+        const response = await fetch('api/bookmarks.php', {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ post_id: postId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update button state
+            updateBookmarkButton(button, data.isBookmarked);
+            
+            // Show success message
+            const message = data.isBookmarked ? 'Post bookmarked successfully!' : 'Bookmark removed successfully!';
+            showAlert(message, 'success');
+            
+            // Update bookmark count if displayed
+            updateBookmarkCount(postId, data.bookmarkCount);
+        } else {
+            showAlert(data.error || 'Failed to update bookmark', 'error');
+        }
+    } catch (error) {
+        console.error('Error handling bookmark:', error);
+        showAlert('An error occurred while updating the bookmark', 'error');
+    }
+}
+
+function updateBookmarkButton(button, isBookmarked) {
+    const icon = button.querySelector('i');
+    const title = button.getAttribute('title');
+    
+    if (isBookmarked) {
+        button.classList.add('bookmarked');
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-primary');
+        icon.className = 'fas fa-bookmark';
+        button.setAttribute('title', 'Remove bookmark');
+    } else {
+        button.classList.remove('bookmarked');
+        button.classList.remove('btn-primary');
+        button.classList.add('btn-outline-secondary');
+        icon.className = 'far fa-bookmark';
+        button.setAttribute('title', 'Bookmark');
+    }
+}
+
+function updateBookmarkButtonStates() {
+    // Get all bookmark buttons and check their current state
+    const bookmarkButtons = document.querySelectorAll('.bookmark-btn');
+    
+    bookmarkButtons.forEach(async (button) => {
+        const postId = button.dataset.postId;
+        if (postId) {
+            try {
+                const response = await fetch(`api/bookmarks.php?action=check&post_id=${postId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateBookmarkButton(button, data.isBookmarked);
+                }
+            } catch (error) {
+                console.error('Error checking bookmark state:', error);
+            }
+        }
+    });
+}
+
+function updateBookmarkCount(postId, count) {
+    // Find and update bookmark count display if it exists
+    const countElement = document.querySelector(`[data-bookmark-count="${postId}"]`);
+    if (countElement) {
+        countElement.textContent = count;
+    }
+}
+
+function showAlert(message, type = 'info') {
+    // Create alert element
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}

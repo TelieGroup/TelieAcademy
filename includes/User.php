@@ -54,15 +54,52 @@ class User {
                 session_start();
             }
             
+            // Store user info for logging before clearing session
+            $userId = $_SESSION['user_id'] ?? null;
+            $username = $_SESSION['username'] ?? null;
+            
+            // Clear OAuth tokens if they exist
+            if ($userId) {
+                $this->clearOAuthTokens($userId);
+            }
+            
+            // Clear OAuth state from session
+            unset($_SESSION['oauth_state']);
+            
             // Clear all session data
             session_unset();
             
             // Destroy the session
             session_destroy();
             
+            // Clear session cookie if it exists
+            if (isset($_COOKIE[session_name()])) {
+                setcookie(session_name(), '', time() - 3600, '/');
+            }
+            
+            // Log the logout action
+            if ($userId && $username) {
+                error_log("User logout: ID=$userId, Username=$username, IP=" . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+            }
+            
             return ['success' => true, 'message' => 'Logged out successfully'];
         } catch (Exception $e) {
+            error_log("Logout error: " . $e->getMessage());
             return ['success' => false, 'message' => 'Logout failed: ' . $e->getMessage()];
+        }
+    }
+    
+    /**
+     * Clear OAuth tokens for a user
+     */
+    private function clearOAuthTokens($userId) {
+        try {
+            $query = "DELETE FROM oauth_tokens WHERE user_id = :user_id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':user_id', $userId);
+            $stmt->execute();
+        } catch (Exception $e) {
+            error_log("Failed to clear OAuth tokens for user $userId: " . $e->getMessage());
         }
     }
 
@@ -120,7 +157,7 @@ class User {
                 return null;
             }
             
-            $query = "SELECT id, username, email, is_premium, is_admin, created_at FROM " . $this->table . " WHERE id = :id";
+            $query = "SELECT id, username, email, is_premium, is_admin, created_at, profile_picture FROM " . $this->table . " WHERE id = :id";
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':id', $_SESSION['user_id']);
             $stmt->execute();
@@ -140,8 +177,8 @@ class User {
         }
     }
 
-    // Register new user
-    public function register($username, $email, $password) {
+    // Register new user with email verification
+    public function register($username, $email, $password, $firstName = null, $lastName = null) {
         try {
             // Check if username or email already exists
             $query = "SELECT id FROM " . $this->table . " WHERE username = :username OR email = :email";
@@ -156,15 +193,38 @@ class User {
             
             // Hash password and create user
             $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+            $verificationToken = bin2hex(random_bytes(32));
+            $expiresAt = date('Y-m-d H:i:s', time() + EMAIL_VERIFICATION_EXPIRY);
             
-            $query = "INSERT INTO " . $this->table . " (username, email, password_hash) VALUES (:username, :email, :password_hash)";
+            $query = "INSERT INTO " . $this->table . " (username, email, password_hash, oauth_provider, 
+                     first_name, last_name, email_verification_token, email_verification_expires, 
+                     email_verified, is_active) 
+                     VALUES (:username, :email, :password_hash, 'email', :first_name, :last_name, 
+                     :verification_token, :expires_at, FALSE, TRUE)";
+            
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':username', $username);
             $stmt->bindParam(':email', $email);
             $stmt->bindParam(':password_hash', $passwordHash);
+            $stmt->bindParam(':first_name', $firstName);
+            $stmt->bindParam(':last_name', $lastName);
+            $stmt->bindParam(':verification_token', $verificationToken);
+            $stmt->bindParam(':expires_at', $expiresAt);
             
             if ($stmt->execute()) {
-                return ['success' => true, 'message' => 'User registered successfully'];
+                $userId = $this->conn->lastInsertId();
+                
+                // Log verification attempt
+                $this->logEmailVerification($userId, $email, $verificationToken, $expiresAt);
+                
+                // Send verification email
+                $this->sendVerificationEmail($email, $username, $verificationToken);
+                
+                return [
+                    'success' => true, 
+                    'message' => 'Registration successful! Please check your email to verify your account.',
+                    'user_id' => $userId
+                ];
             } else {
                 return ['success' => false, 'message' => 'Failed to register user'];
             }
@@ -422,6 +482,78 @@ class User {
         }
     }
 
+    // Update profile picture
+    public function updateProfilePicture($userId, $profilePicturePath) {
+        try {
+            // First, get the current profile picture to delete it if it exists
+            $query = "SELECT profile_picture, oauth_provider FROM " . $this->table . " WHERE id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindValue(':id', $userId, PDO::PARAM_INT);
+            $stmt->execute();
+            $user = $stmt->fetch();
+            
+            if ($user && $user['profile_picture']) {
+                // Check if the current profile picture is from OAuth provider (URL) or local file
+                if ($this->isOAuthProfilePicture($user['profile_picture'])) {
+                    // For OAuth profile pictures (URLs), we don't delete them as they're external
+                    // Just log that we're replacing an OAuth profile picture
+                    error_log("Replacing OAuth profile picture for user $userId: " . $user['profile_picture']);
+                } else {
+                    // For local files, delete the old file if it exists
+                    if (!str_contains($user['profile_picture'], 'default')) {
+                        $oldPicturePath = dirname(__DIR__) . '/' . $user['profile_picture'];
+                        if (file_exists($oldPicturePath)) {
+                            unlink($oldPicturePath);
+                        }
+                    }
+                }
+            }
+            
+            // Update the profile picture in database
+            $query = "UPDATE " . $this->table . " 
+                     SET profile_picture = :profile_picture, updated_at = NOW() 
+                     WHERE id = :id";
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindValue(':profile_picture', $profilePicturePath);
+            $stmt->bindValue(':id', $userId, PDO::PARAM_INT);
+            
+            if ($stmt->execute()) {
+                return ['success' => true, 'message' => 'Profile picture updated successfully'];
+            } else {
+                return ['success' => false, 'message' => 'Failed to update profile picture'];
+            }
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Error updating profile picture: ' . $e->getMessage()];
+        }
+    }
+    
+    /**
+     * Check if a profile picture URL is from an OAuth provider
+     */
+    private function isOAuthProfilePicture($profilePicturePath) {
+        // Check if it's a URL (starts with http or https)
+        if (filter_var($profilePicturePath, FILTER_VALIDATE_URL)) {
+            return true;
+        }
+        
+        // Check if it contains OAuth provider domains
+        $oauthDomains = [
+            'googleusercontent.com',  // Google
+            'githubusercontent.com',  // GitHub
+            'licdn.com',             // LinkedIn
+            'linkedin.com'           // LinkedIn
+        ];
+        
+        foreach ($oauthDomains as $domain) {
+            if (strpos($profilePicturePath, $domain) !== false) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
     // Verify password
     public function verifyPassword($userId, $password) {
         try {
@@ -457,6 +589,155 @@ class User {
             }
         } catch (Exception $e) {
             return ['success' => false, 'message' => 'Error changing password: ' . $e->getMessage()];
+        }
+    }
+    
+    // Email verification methods
+    public function verifyEmail($token) {
+        try {
+            $query = "SELECT id, email, username FROM " . $this->table . " 
+                     WHERE email_verification_token = :token 
+                     AND email_verification_expires > NOW() 
+                     AND email_verified = FALSE";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':token', $token);
+            $stmt->execute();
+            $user = $stmt->fetch();
+            
+            if ($user) {
+                // Mark email as verified
+                $updateQuery = "UPDATE " . $this->table . " SET 
+                              email_verified = TRUE, 
+                              email_verification_token = NULL, 
+                              email_verification_expires = NULL 
+                              WHERE id = :id";
+                $updateStmt = $this->conn->prepare($updateQuery);
+                $updateStmt->bindParam(':id', $user['id']);
+                
+                if ($updateStmt->execute()) {
+                    // Log verification
+                    $this->logEmailVerificationSuccess($user['id'], $user['email']);
+                    return ['success' => true, 'message' => 'Email verified successfully!'];
+                }
+            }
+            
+            return ['success' => false, 'message' => 'Invalid or expired verification token'];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Email verification failed: ' . $e->getMessage()];
+        }
+    }
+    
+    public function resendVerificationEmail($email) {
+        try {
+            $query = "SELECT id, username, email_verified FROM " . $this->table . " WHERE email = :email";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':email', $email);
+            $stmt->execute();
+            $user = $stmt->fetch();
+            
+            if (!$user) {
+                return ['success' => false, 'message' => 'User not found'];
+            }
+            
+            if ($user['email_verified']) {
+                return ['success' => false, 'message' => 'Email is already verified'];
+            }
+            
+            // Generate new verification token
+            $verificationToken = bin2hex(random_bytes(32));
+            $expiresAt = date('Y-m-d H:i:s', time() + EMAIL_VERIFICATION_EXPIRY);
+            
+            $updateQuery = "UPDATE " . $this->table . " SET 
+                          email_verification_token = :token, 
+                          email_verification_expires = :expires 
+                          WHERE id = :id";
+            $updateStmt = $this->conn->prepare($updateQuery);
+            $updateStmt->bindParam(':token', $verificationToken);
+            $updateStmt->bindParam(':expires', $expiresAt);
+            $updateStmt->bindParam(':id', $user['id']);
+            
+            if ($updateStmt->execute()) {
+                // Log verification attempt
+                $this->logEmailVerification($user['id'], $email, $verificationToken, $expiresAt);
+                
+                // Send verification email
+                $this->sendVerificationEmail($email, $user['username'], $verificationToken);
+                
+                return ['success' => true, 'message' => 'Verification email sent successfully'];
+            }
+            
+            return ['success' => false, 'message' => 'Failed to send verification email'];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Failed to send verification email: ' . $e->getMessage()];
+        }
+    }
+    
+    private function logEmailVerification($userId, $email, $token, $expiresAt) {
+        try {
+            $query = "INSERT INTO email_verification_logs (user_id, email, token, expires_at) 
+                     VALUES (:user_id, :email, :token, :expires_at)";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':user_id', $userId);
+            $stmt->bindParam(':email', $email);
+            $stmt->bindParam(':token', $token);
+            $stmt->bindParam(':expires_at', $expiresAt);
+            $stmt->execute();
+        } catch (Exception $e) {
+            // Log error but don't fail the main operation
+            error_log('Failed to log email verification: ' . $e->getMessage());
+        }
+    }
+    
+    private function logEmailVerificationSuccess($userId, $email) {
+        try {
+            $query = "UPDATE email_verification_logs SET verified_at = NOW() 
+                     WHERE user_id = :user_id AND email = :email 
+                     ORDER BY created_at DESC LIMIT 1";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':user_id', $userId);
+            $stmt->bindParam(':email', $email);
+            $stmt->execute();
+        } catch (Exception $e) {
+            // Log error but don't fail the main operation
+            error_log('Failed to log email verification success: ' . $e->getMessage());
+        }
+    }
+    
+    private function sendVerificationEmail($email, $username, $token) {
+        try {
+            $verificationUrl = SITE_URL . '/auth/verify-email.php?token=' . $token;
+            
+            $subject = 'Verify your email address - ' . SITE_NAME;
+            $message = "
+            <html>
+            <body>
+                <h2>Welcome to " . SITE_NAME . "!</h2>
+                <p>Hi $username,</p>
+                <p>Thank you for registering with us. Please click the link below to verify your email address:</p>
+                <p><a href='$verificationUrl'>Verify Email Address</a></p>
+                <p>If the link doesn't work, copy and paste this URL into your browser:</p>
+                <p>$verificationUrl</p>
+                <p>This link will expire in 24 hours.</p>
+                <p>Best regards,<br>The " . SITE_NAME . " Team</p>
+            </body>
+            </html>";
+            
+            $headers = [
+                'MIME-Version: 1.0',
+                'Content-type: text/html; charset=UTF-8',
+                'From: ' . SMTP_FROM_NAME . ' <' . SMTP_FROM_EMAIL . '>',
+                'Reply-To: ' . SMTP_FROM_EMAIL,
+                'X-Mailer: PHP/' . phpversion()
+            ];
+            
+            // For now, just log the email (in production, use proper SMTP)
+            error_log("Verification email would be sent to: $email");
+            error_log("Verification URL: $verificationUrl");
+            
+            return true;
+        } catch (Exception $e) {
+            error_log('Failed to send verification email: ' . $e->getMessage());
+            return false;
         }
     }
 }

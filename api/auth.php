@@ -5,6 +5,7 @@ ini_set('display_errors', 0);
 
 // Include session configuration
 require_once '../config/session.php';
+require_once '../config/oauth.php';
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -37,10 +38,30 @@ try {
                     
                 case 'register':
                     if (isset($input['username']) && isset($input['email']) && isset($input['password'])) {
-                        $result = $user->register($input['username'], $input['email'], $input['password']);
+                        $firstName = $input['first_name'] ?? null;
+                        $lastName = $input['last_name'] ?? null;
+                        $result = $user->register($input['username'], $input['email'], $input['password'], $firstName, $lastName);
                         echo json_encode($result);
                     } else {
                         echo json_encode(['success' => false, 'message' => 'Missing required fields']);
+                    }
+                    break;
+                    
+                case 'verify_email':
+                    if (isset($input['token'])) {
+                        $result = $user->verifyEmail($input['token']);
+                        echo json_encode($result);
+                    } else {
+                        echo json_encode(['success' => false, 'message' => 'Missing verification token']);
+                    }
+                    break;
+                    
+                case 'resend_verification':
+                    if (isset($input['email'])) {
+                        $result = $user->resendVerificationEmail($input['email']);
+                        echo json_encode($result);
+                    } else {
+                        echo json_encode(['success' => false, 'message' => 'Missing email address']);
                     }
                     break;
                     
@@ -55,6 +76,36 @@ try {
                         'is_premium' => $isPremium,
                         'user' => $currentUser
                     ]);
+                    break;
+                    
+                case 'check_oauth_status':
+                    if (isset($input['provider'])) {
+                        $provider = $input['provider'];
+                        $configured = false;
+                        
+                        switch ($provider) {
+                            case 'linkedin':
+                                $configured = isLinkedInConfigured();
+                                break;
+                            case 'google':
+                                $configured = isGoogleConfigured();
+                                break;
+                            case 'github':
+                                $configured = isGitHubConfigured();
+                                break;
+                            default:
+                                echo json_encode(['success' => false, 'message' => 'Invalid OAuth provider']);
+                                exit;
+                        }
+                        
+                        echo json_encode([
+                            'success' => true,
+                            'configured' => $configured,
+                            'provider' => $provider
+                        ]);
+                    } else {
+                        echo json_encode(['success' => false, 'message' => 'Missing provider parameter']);
+                    }
                     break;
                     
                 default:
