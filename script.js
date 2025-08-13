@@ -13,31 +13,41 @@ document.addEventListener('DOMContentLoaded', function() {
     const savedMode = localStorage.getItem('darkMode');
     if (savedMode === 'dark') {
         body.classList.add('dark-mode');
-        updateDarkModeIcon(true);
+        if (darkModeToggle) {
+            updateDarkModeIcon(true);
+        }
     }
     
     // Dark mode toggle functionality
-    darkModeToggle.addEventListener('click', function() {
-        body.classList.toggle('dark-mode');
-        const isDarkMode = body.classList.contains('dark-mode');
+    if (darkModeToggle) {
+        console.log('Dark mode toggle button found and initialized');
+        darkModeToggle.addEventListener('click', function() {
+            console.log('Dark mode toggle clicked');
+            body.classList.toggle('dark-mode');
+            const isDarkMode = body.classList.contains('dark-mode');
+            
+            // Save preference to localStorage
+            localStorage.setItem('darkMode', isDarkMode ? 'dark' : 'light');
+            
+            // Update icon
+            updateDarkModeIcon(isDarkMode);
+            
+            // Add loading animation to cards
+            animateCards();
+        });
         
-        // Save preference to localStorage
-        localStorage.setItem('darkMode', isDarkMode ? 'dark' : 'light');
-        
-        // Update icon
-        updateDarkModeIcon(isDarkMode);
-        
-        // Add loading animation to cards
-        animateCards();
-    });
-    
-    function updateDarkModeIcon(isDark) {
-        const icon = darkModeToggle.querySelector('i');
-        if (isDark) {
-            icon.className = 'fas fa-sun';
-        } else {
-            icon.className = 'fas fa-moon';
+        function updateDarkModeIcon(isDark) {
+            const icon = darkModeToggle.querySelector('i');
+            if (icon) {
+                if (isDark) {
+                    icon.className = 'fas fa-sun';
+                } else {
+                    icon.className = 'fas fa-moon';
+                }
+            }
         }
+    } else {
+        console.log('Dark mode toggle button not found');
     }
     
     function animateCards() {
@@ -130,9 +140,19 @@ function checkAuthStatus() {
         console.log('Auth API response data:', data);
         if (data.success && data.is_logged_in) {
             console.log('User is logged in, showing user info');
+            isLoggedIn = true;
+            currentUser = data.user;
             showUserInfo(data.user);
+            
+            // Update bookmark button states after authentication is confirmed
+            setTimeout(() => {
+                console.log('Authentication confirmed, updating bookmark states...');
+                updateBookmarkButtonStates();
+            }, 200);
         } else {
             console.log('User is not logged in, showing login button');
+            isLoggedIn = false;
+            currentUser = null;
             showLoginButton();
         }
     })
@@ -336,6 +356,12 @@ function showUserInfo(user) {
             console.log('Admin button is visible (user is admin)');
         }
     }
+    
+    // Update bookmark button states after user info is shown
+    setTimeout(() => {
+        console.log('User info shown, updating bookmark states...');
+        updateBookmarkButtonStates();
+    }, 100);
 }
 
 function showLoginButton() {
@@ -1052,7 +1078,8 @@ function fallbackCopyTextToClipboard(text) {
 
 // Voting functionality
 function initializeVoting() {
-    const voteButtons = document.querySelectorAll('.vote-btn');
+    // Look for both vote button classes
+    const voteButtons = document.querySelectorAll('.vote-btn, .vote-btn-modern');
     console.log('Initializing voting, found', voteButtons.length, 'vote buttons');
     
     voteButtons.forEach((button, index) => {
@@ -1153,16 +1180,25 @@ function updateVoteCounts(postId, voteStats, userVote) {
                 console.log('Updated upvote count to', voteStats.upvotes);
             }
             
-            // Update button appearance
-            if (userVote === 'upvote') {
+                    // Update button appearance
+        if (userVote === 'upvote') {
+            // Handle both Bootstrap and custom classes
+            if (button.classList.contains('vote-btn-modern')) {
+                button.classList.add('voted');
+            } else {
                 button.classList.remove('btn-outline-success');
                 button.classList.add('btn-success');
-                console.log('Set upvote button to active state');
+            }
+            console.log('Set upvote button to active state');
+        } else {
+            if (button.classList.contains('vote-btn-modern')) {
+                button.classList.remove('voted');
             } else {
                 button.classList.remove('btn-success');
                 button.classList.add('btn-outline-success');
-                console.log('Set upvote button to inactive state');
             }
+            console.log('Set upvote button to inactive state');
+        }
             
         } else if (voteType === 'downvote') {
             // Update downvote button
@@ -1173,12 +1209,21 @@ function updateVoteCounts(postId, voteStats, userVote) {
             
             // Update button appearance
             if (userVote === 'downvote') {
-                button.classList.remove('btn-outline-danger');
-                button.classList.add('btn-danger');
+                // Handle both Bootstrap and custom classes
+                if (button.classList.contains('vote-btn-modern')) {
+                    button.classList.add('voted');
+                } else {
+                    button.classList.remove('btn-outline-danger');
+                    button.classList.add('btn-danger');
+                }
                 console.log('Set downvote button to active state');
             } else {
-                button.classList.remove('btn-danger');
-                button.classList.add('btn-outline-danger');
+                if (button.classList.contains('vote-btn-modern')) {
+                    button.classList.remove('voted');
+                } else {
+                    button.classList.remove('btn-danger');
+                    button.classList.add('btn-outline-danger');
+                }
                 console.log('Set downvote button to inactive state');
             }
         }
@@ -1189,9 +1234,10 @@ function updateVoteCounts(postId, voteStats, userVote) {
     
     // Update vote score - find it relative to any vote button
     const firstButton = allVoteButtons[0];
-    const cardContainer = firstButton.closest('.card');
+    const cardContainer = firstButton.closest('.card, .post-card, .trending-post-card');
     if (cardContainer) {
-        const voteScore = cardContainer.querySelector('.vote-score .badge');
+        // Try different vote score selectors
+        let voteScore = cardContainer.querySelector('.vote-score .badge, .vote-score-modern .score-badge');
         if (voteScore) {
             voteScore.innerHTML = `<i class="fas fa-chart-line me-1"></i>${voteStats.vote_score}`;
             console.log('Updated vote score to', voteStats.vote_score);
@@ -2064,11 +2110,15 @@ function initializeBackToTop() {
 
 // Bookmark Functionality
 function initializeBookmarks() {
-    // Add click event listeners to all bookmark buttons
+    console.log('Initializing bookmarks...');
+    console.log('User logged in:', isLoggedIn);
+    console.log('Current user:', currentUser);
+    
+    // Add click event listeners to all bookmark buttons (both old and new classes)
     document.addEventListener('click', function(e) {
-        if (e.target.closest('.bookmark-btn')) {
+        if (e.target.closest('.bookmark-btn, .bookmark-btn-icon')) {
             e.preventDefault();
-            const button = e.target.closest('.bookmark-btn');
+            const button = e.target.closest('.bookmark-btn, .bookmark-btn-icon');
             const postId = button.dataset.postId;
             
             if (!postId) {
@@ -2082,7 +2132,13 @@ function initializeBookmarks() {
     
     // Update bookmark button states for logged-in users
     if (isLoggedIn && currentUser) {
-        updateBookmarkButtonStates();
+        console.log('User is logged in, updating bookmark button states...');
+        // Add a small delay to ensure DOM is fully loaded
+        setTimeout(() => {
+            updateBookmarkButtonStates();
+        }, 100);
+    } else {
+        console.log('User not logged in, skipping bookmark state update');
     }
 }
 
@@ -2131,36 +2187,55 @@ function updateBookmarkButton(button, isBookmarked) {
     
     if (isBookmarked) {
         button.classList.add('bookmarked');
-        button.classList.remove('btn-outline-secondary');
-        button.classList.add('btn-primary');
+        // Handle both Bootstrap and custom CSS classes
+        if (button.classList.contains('btn-outline-secondary')) {
+            button.classList.remove('btn-outline-secondary');
+            button.classList.add('btn-primary');
+        }
+        // For the new icon-only button, the CSS will handle the styling
         icon.className = 'fas fa-bookmark';
         button.setAttribute('title', 'Remove bookmark');
     } else {
         button.classList.remove('bookmarked');
-        button.classList.remove('btn-primary');
-        button.classList.add('btn-outline-secondary');
+        // Handle both Bootstrap and custom CSS classes
+        if (button.classList.contains('btn-primary')) {
+            button.classList.remove('btn-primary');
+            button.classList.add('btn-outline-secondary');
+        }
+        // For the new icon-only button, the CSS will handle the styling
         icon.className = 'far fa-bookmark';
         button.setAttribute('title', 'Bookmark');
     }
 }
 
 function updateBookmarkButtonStates() {
-    // Get all bookmark buttons and check their current state
-    const bookmarkButtons = document.querySelectorAll('.bookmark-btn');
+    console.log('Updating bookmark button states...');
+    // Get all bookmark buttons and check their current state (both old and new classes)
+    const bookmarkButtons = document.querySelectorAll('.bookmark-btn, .bookmark-btn-icon');
+    console.log('Found', bookmarkButtons.length, 'bookmark buttons to update');
     
-    bookmarkButtons.forEach(async (button) => {
+    bookmarkButtons.forEach(async (button, index) => {
         const postId = button.dataset.postId;
+        console.log(`Button ${index}: post ID = ${postId}`);
+        
         if (postId) {
             try {
+                console.log(`Checking bookmark status for post ${postId}...`);
                 const response = await fetch(`api/bookmarks.php?action=check&post_id=${postId}`);
                 const data = await response.json();
+                console.log(`Bookmark check response for post ${postId}:`, data);
                 
                 if (data.success) {
+                    console.log(`Updating button for post ${postId} to bookmarked: ${data.isBookmarked}`);
                     updateBookmarkButton(button, data.isBookmarked);
+                } else {
+                    console.warn(`Bookmark check failed for post ${postId}:`, data.error);
                 }
             } catch (error) {
-                console.error('Error checking bookmark state:', error);
+                console.error('Error checking bookmark state for post', postId, ':', error);
             }
+        } else {
+            console.warn(`Button ${index} has no post ID`);
         }
     });
 }

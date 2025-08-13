@@ -54,6 +54,105 @@ include '../includes/head.php';
 ?>
 <!-- Admin CSS -->
 <link rel="stylesheet" href="admin.css">
+
+<style>
+/* Newsletter Page Specific Dark Mode Support */
+.dark-mode .container-fluid {
+    background: #1a1a1a;
+    color: #e0e0e0;
+}
+
+.dark-mode .card {
+    background: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+}
+
+.dark-mode .card-header {
+    background: #353535;
+    border-bottom-color: #404040;
+    color: #e0e0e0;
+}
+
+.dark-mode .table {
+    background: #2d2d2d;
+    color: #e0e0e0;
+}
+
+.dark-mode .table th {
+    background: #353535;
+    color: #ffffff;
+    border-color: #404040;
+}
+
+.dark-mode .table td {
+    border-color: #404040;
+    color: #e0e0e0;
+}
+
+.dark-mode .table tbody tr:hover {
+    background: #353535;
+}
+
+.dark-mode .table-striped > tbody > tr:nth-of-type(odd) > td {
+    background-color: #2d2d2d;
+}
+
+.dark-mode .table-striped > tbody > tr:nth-of-type(odd):hover > td {
+    background-color: #353535;
+}
+
+.dark-mode .form-control,
+.dark-mode .form-select {
+    background: #404040;
+    border-color: #505050;
+    color: #e0e0e0;
+}
+
+.dark-mode .form-control:focus,
+.dark-mode .form-control:focus {
+    background: #404040;
+    border-color: #0d6efd;
+    color: #e0e0e0;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.dark-mode .form-label {
+    color: #e0e0e0;
+}
+
+.dark-mode .text-muted {
+    color: #b0b0b0 !important;
+}
+
+.dark-mode .border-bottom {
+    border-bottom-color: #404040 !important;
+}
+
+.dark-mode .btn-toolbar .btn {
+    background: #404040;
+    border-color: #505050;
+    color: #e0e0e0;
+}
+
+.dark-mode .btn-toolbar .btn:hover {
+    background: #505050;
+    border-color: #606060;
+    color: #ffffff;
+}
+
+.dark-mode .btn-toolbar .btn-primary {
+    background: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+
+.dark-mode .btn-toolbar .btn-primary:hover {
+    background: #0b5ed7;
+    border-color: #0b5ed7;
+    color: white;
+}
+</style>
 <?php include '../includes/header.php'; ?>
 
 <div class="container-fluid mt-5 pt-5">
@@ -76,6 +175,9 @@ include '../includes/head.php';
                     <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#sendNewsletterModal">
                         <i class="fas fa-paper-plane me-1"></i>Send Newsletter
                     </button>
+                    <a href="send_newsletter.php" class="btn btn-sm btn-outline-primary ms-2">
+                        <i class="fas fa-edit me-1"></i>Compose Newsletter
+                    </a>
                 </div>
             </div>
 

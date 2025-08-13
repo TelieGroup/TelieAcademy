@@ -4,13 +4,21 @@ require_once '../includes/User.php';
 require_once '../includes/Post.php';
 require_once '../includes/Category.php';
 require_once '../includes/Comment.php';
+require_once '../includes/Reply.php';
+require_once '../includes/View.php';
 require_once '../includes/Newsletter.php'; // Added for newsletter statistics
 require_once '../includes/Media.php'; // Added for media statistics
+require_once '../includes/ContactMessage.php'; // Added for contact message statistics
+require_once '../includes/Course.php'; // Added for course statistics
 
 $user = new User();
 $post = new Post();
 $category = new Category();
 $comment = new Comment();
+$reply = new Reply();
+$view = new View();
+$contactMessage = new ContactMessage();
+$course = new Course();
 
 // Check if user is logged in and is admin
 if (!$user->isLoggedIn()) {
@@ -187,6 +195,358 @@ include '../includes/head.php';
                 </div>
             </div>
 
+            <!-- Additional Stats Row -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-secondary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                                        Total Replies
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php echo $reply->getTotalReplyCount(); ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-reply fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        Pending Replies
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php 
+                                        $replyStats = $reply->getReplyStatistics();
+                                        echo $replyStats['pending_replies'] ?? 0; 
+                                        ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-clock fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        Approved Replies
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php echo $replyStats['approved_replies'] ?? 0; ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        Pending Comments
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php 
+                                        $commentStats = $comment->getCommentStatistics();
+                                        echo $commentStats['pending_comments'] ?? 0; 
+                                        ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View Statistics Row -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        Total Views
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php 
+                                        $viewStats = $view->getOverallViewStats();
+                                        echo number_format($viewStats['total_views'] ?? 0); 
+                                        ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-eye fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        Views Today
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php echo number_format($viewStats['views_today'] ?? 0); ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        Views This Week
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php echo number_format($viewStats['views_week'] ?? 0); ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-calendar-week fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        Avg Views/Post
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php echo number_format($viewStats['avg_views_per_post'] ?? 0); ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-chart-bar fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Download Statistics Row -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        Total Downloads
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php 
+                                        $downloadStats = $course->getDownloadStatistics();
+                                        echo number_format($downloadStats['total_downloads'] ?? 0); 
+                                        ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-download fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                            Downloads Today
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                            <?php echo number_format($downloadStats['downloads_today'] ?? 0); ?>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        Downloads This Week
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php echo number_format($downloadStats['downloads_week'] ?? 0); ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-calendar-week fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        Popular Materials
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php 
+                                        $popularMaterials = $course->getPopularMaterials(5);
+                                        echo count($popularMaterials); 
+                                        ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-star fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Message Statistics Row -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-danger shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                        Total Messages
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php 
+                                        $contactStats = $contactMessage->getMessageStatistics();
+                                        echo number_format($contactStats['total_messages'] ?? 0); 
+                                        ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-envelope fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        New Messages
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php echo number_format($contactStats['new_messages'] ?? 0); ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-exclamation-circle fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        Urgent Messages
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php echo number_format($contactStats['urgent_messages'] ?? 0); ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        Messages Today
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        <?php echo number_format($contactStats['messages_today'] ?? 0); ?>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-calendar-day fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Recent Posts -->
             <div class="row">
                 <div class="col-12">
@@ -253,6 +613,46 @@ include '../includes/head.php';
                                         <?php endif; ?>
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Course Management Quick Access -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                            <h6 class="m-0 font-weight-bold text-primary">Course Management</h6>
+                            <a href="courses.php" class="btn btn-sm btn-primary">Manage Courses</a>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3 text-center">
+                                    <i class="fas fa-graduation-cap fa-3x text-primary mb-2"></i>
+                                    <h5>Courses</h5>
+                                    <p class="text-muted">Organize learning content</p>
+                                    <a href="courses.php" class="btn btn-outline-primary btn-sm">View Courses</a>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <i class="fas fa-book fa-3x text-success mb-2"></i>
+                                    <h5>Modules</h5>
+                                    <p class="text-muted">Structure course content</p>
+                                    <a href="courses.php" class="btn btn-outline-success btn-sm">Manage Modules</a>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <i class="fas fa-file-alt fa-3x text-info mb-2"></i>
+                                    <h5>Materials</h5>
+                                    <p class="text-muted">Upload PDFs & Presentations</p>
+                                    <a href="courses.php" class="btn btn-outline-info btn-sm">Upload Files</a>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <i class="fas fa-users fa-3x text-warning mb-2"></i>
+                                    <h5>Premium Access</h5>
+                                    <p class="text-muted">Control user access</p>
+                                    <a href="users.php" class="btn btn-outline-warning btn-sm">User Management</a>
+                                </div>
                             </div>
                         </div>
                     </div>

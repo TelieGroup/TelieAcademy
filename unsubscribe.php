@@ -1,62 +1,249 @@
 <?php
-require_once 'config/session.php';
-require_once 'includes/User.php';
+require_once 'config/database.php';
 require_once 'includes/Newsletter.php';
 
-$user = new User();
-$newsletter = new Newsletter();
-
-// Check if user is logged in
-if (!$user->isLoggedIn()) {
-    header('Location: index.php');
-    exit;
-}
-
-$currentUser = $user->getCurrentUser();
-$subscription = $newsletter->getUserSubscription($currentUser['id'], $currentUser['email']);
-
-// Handle unsubscribe request
+$pageTitle = "Unsubscribe - TelieAcademy";
 $message = '';
 $messageType = '';
+$showForm = true;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['confirm_unsubscribe'])) {
-        $result = $newsletter->unsubscribe($currentUser['email']);
+// Get email and token from URL
+$email = $_GET['email'] ?? '';
+$token = $_GET['token'] ?? '';
+
+if (empty($email) || empty($token)) {
+    $message = 'Invalid unsubscribe link. Please check your email for the correct link.';
+    $messageType = 'danger';
+    $showForm = false;
+} else {
+    // Verify token and unsubscribe
+    try {
+$newsletter = new Newsletter();
+
+        // Verify the unsubscribe token
+        $subscriber = $newsletter->getSubscriberByEmail($email);
+        
+        if (!$subscriber) {
+            $message = 'Email address not found in our subscriber list.';
+            $messageType = 'warning';
+            $showForm = false;
+        } elseif ($subscriber['unsubscribe_token'] !== $token) {
+            $message = 'Invalid unsubscribe token. Please check your email for the correct link.';
+            $messageType = 'danger';
+            $showForm = false;
+        } elseif (!$subscriber['is_active']) {
+            $message = 'You are already unsubscribed from our newsletter.';
+            $messageType = 'info';
+            $showForm = false;
+        } else {
+            // Process unsubscribe
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $action = $_POST['action'] ?? '';
+                
+                if ($action === 'unsubscribe') {
+                    $reason = $_POST['reason'] ?? '';
+                    $feedback = $_POST['feedback'] ?? '';
+                    
+                    // Unsubscribe the user
+                    $result = $newsletter->unsubscribe($email);
         
         if ($result['success']) {
-            $message = $result['message'];
+                        $message = 'You have been successfully unsubscribed from our newsletter. We\'re sorry to see you go!';
             $messageType = 'success';
-            
-            // Refresh subscription data
-            $subscription = null;
+                        $showForm = false;
+                        
+                        // Log the unsubscribe reason and feedback
+                        if (!empty($reason) || !empty($feedback)) {
+                            $newsletter->logUnsubscribeFeedback($email, $reason, $feedback);
+                        }
         } else {
-            $message = $result['message'];
+                        $message = 'Failed to unsubscribe. Please try again or contact support.';
             $messageType = 'danger';
         }
+                }
+            }
+        }
+    } catch (Exception $e) {
+        $message = 'An error occurred while processing your request. Please try again.';
+        $messageType = 'danger';
+        $showForm = false;
     }
 }
 
-$pageTitle = "Unsubscribe from Newsletter";
+include 'includes/head.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <?php include 'includes/head.php'; ?>
-</head>
-<body>
+<style>
+.unsubscribe-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.unsubscribe-form {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 40px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.unsubscribe-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.unsubscribe-header i {
+    font-size: 4rem;
+    color: #dc3545;
+    margin-bottom: 20px;
+}
+
+.unsubscribe-header h1 {
+    color: #343a40;
+    margin-bottom: 10px;
+}
+
+.unsubscribe-header p {
+    color: #6c757d;
+    font-size: 1.1rem;
+}
+
+.feedback-section {
+    background: #e3f2fd;
+    border: 1px solid #2196f3;
+    border-radius: 10px;
+    padding: 25px;
+    margin: 25px 0;
+}
+
+.feedback-section h5 {
+    color: #1976d2;
+    margin-bottom: 15px;
+}
+
+.reason-options {
+    margin-bottom: 20px;
+}
+
+.reason-options .form-check {
+    margin-bottom: 10px;
+}
+
+.feedback-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.unsubscribe-actions {
+    text-align: center;
+    margin-top: 30px;
+}
+
+.btn-unsubscribe {
+    background: #dc3545;
+    border-color: #dc3545;
+    padding: 12px 30px;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.btn-unsubscribe:hover {
+    background: #c82333;
+    border-color: #bd2130;
+}
+
+.btn-cancel {
+    background: #6c757d;
+    border-color: #6c757d;
+    padding: 12px 30px;
+    font-size: 1.1rem;
+    margin-left: 15px;
+}
+
+.btn-cancel:hover {
+    background: #5a6268;
+    border-color: #545b62;
+}
+
+.success-message {
+    text-align: center;
+    padding: 40px;
+}
+
+.success-message i {
+    font-size: 4rem;
+    color: #28a745;
+    margin-bottom: 20px;
+}
+
+.success-message h2 {
+    color: #28a745;
+    margin-bottom: 15px;
+}
+
+.success-message p {
+    color: #6c757d;
+    font-size: 1.1rem;
+    margin-bottom: 25px;
+}
+
+/* Dark Mode Support */
+.dark-mode .unsubscribe-form {
+    background: #2d2d2d;
+    color: #e0e0e0;
+}
+
+.dark-mode .unsubscribe-header h1 {
+    color: #e0e0e0;
+}
+
+.dark-mode .unsubscribe-header p {
+    color: #b0b0b0;
+}
+
+.dark-mode .feedback-section {
+    background: #1e3a5f;
+    border-color: #2196f3;
+    color: #e0e0e0;
+}
+
+.dark-mode .feedback-section h5 {
+    color: #64b5f6;
+}
+
+.dark-mode .form-control,
+.dark-mode .form-select {
+    background: #404040;
+    border-color: #505050;
+    color: #e0e0e0;
+}
+
+.dark-mode .form-control:focus,
+.dark-mode .form-select:focus {
+    background: #404040;
+    border-color: #007bff;
+    color: #e0e0e0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.dark-mode .form-label {
+    color: #e0e0e0;
+}
+</style>
+
     <?php include 'includes/header.php'; ?>
 
-    <main class="container mt-5 pt-5">
-        <div class="row justify-content-center">
-            <div class="col-lg-6">
-                <div class="card shadow">
-                    <div class="card-header bg-warning text-dark text-center">
-                        <h4 class="mb-0">
-                            <i class="fas fa-exclamation-triangle me-2"></i>Unsubscribe from Newsletter
-                        </h4>
+<div class="container-fluid mt-5 pt-5">
+    <div class="unsubscribe-container">
+        <?php if ($showForm): ?>
+            <!-- Unsubscribe Form -->
+            <div class="unsubscribe-form">
+                <div class="unsubscribe-header">
+                    <i class="fas fa-envelope-open"></i>
+                    <h1>Unsubscribe from Newsletter</h1>
+                    <p>We're sorry to see you go. Please let us know why you're leaving.</p>
                     </div>
-                    <div class="card-body">
+
                         <?php if ($message): ?>
                             <div class="alert alert-<?php echo $messageType; ?> alert-dismissible fade show" role="alert">
                                 <?php echo htmlspecialchars($message); ?>
@@ -64,130 +251,116 @@ $pageTitle = "Unsubscribe from Newsletter";
                             </div>
                         <?php endif; ?>
 
-                        <?php if ($subscription && $subscription['is_active']): ?>
-                            <!-- Active Subscription - Show Unsubscribe Form -->
-                            <div class="text-center mb-4">
-                                <i class="fas fa-envelope fa-4x text-warning mb-3"></i>
-                                <h5>Current Subscription</h5>
+                <form method="POST" action="">
+                    <input type="hidden" name="action" value="unsubscribe">
+                    
+                    <!-- Feedback Section -->
+                    <div class="feedback-section">
+                        <h5><i class="fas fa-comment me-2"></i>Help us improve</h5>
+                        <p class="mb-3">Your feedback helps us create better content and improve our newsletter.</p>
+                        
+                        <!-- Reason for unsubscribing -->
+                        <div class="mb-3">
+                            <label class="form-label">Why are you unsubscribing?</label>
+                            <div class="reason-options">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="reason" id="reason_too_frequent" value="too_frequent">
+                                    <label class="form-check-label" for="reason_too_frequent">
+                                        Emails are too frequent
+                                    </label>
                             </div>
-
-                            <div class="card border-info mb-4">
-                                <div class="card-body">
-                                    <div class="row text-center">
-                                        <div class="col-md-6">
-                                            <h6>Subscription Type</h6>
-                                            <span class="badge bg-<?php echo $subscription['subscription_type'] === 'premium' ? 'warning' : 'success'; ?> fs-6">
-                                                <?php echo ucfirst($subscription['subscription_type']); ?>
-                                            </span>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="reason" id="reason_not_relevant" value="not_relevant">
+                                    <label class="form-check-label" for="reason_not_relevant">
+                                        Content is not relevant to me
+                                    </label>
                                         </div>
-                                        <div class="col-md-6">
-                                            <h6>Frequency</h6>
-                                            <span class="badge bg-info fs-6">
-                                                <?php echo ucfirst($subscription['frequency']); ?>
-                                            </span>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="reason" id="reason_quality" value="quality">
+                                    <label class="form-check-label" for="reason_quality">
+                                        Content quality is poor
+                                    </label>
                                         </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="reason" id="reason_spam" value="spam">
+                                    <label class="form-check-label" for="reason_spam">
+                                        Marked as spam by mistake
+                                    </label>
                                     </div>
-                                    
-                                    <?php if ($subscription['subscription_type'] === 'premium'): ?>
-                                        <hr>
-                                        <div class="text-center">
-                                            <p class="mb-0">
-                                                <strong>Premium Expires:</strong> 
-                                                <?php 
-                                                if ($subscription['premium_expires_at']) {
-                                                    echo date('M j, Y', strtotime($subscription['premium_expires_at']));
-                                                } else {
-                                                    echo 'Never';
-                                                }
-                                                ?>
-                                            </p>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="reason" id="reason_other" value="other">
+                                    <label class="form-check-label" for="reason_other">
+                                        Other reason
+                                    </label>
                                         </div>
-                                    <?php endif; ?>
                                 </div>
                             </div>
 
-                            <!-- Warning Message -->
-                            <div class="alert alert-danger">
-                                <h6><i class="fas fa-exclamation-triangle me-2"></i>Are you sure?</h6>
-                                <p class="mb-2">Unsubscribing will:</p>
-                                <ul class="mb-2">
-                                    <li>Stop all newsletter emails</li>
-                                    <li>Remove you from our mailing list</li>
-                                    <?php if ($subscription['subscription_type'] === 'premium'): ?>
-                                        <li><strong>Cancel your premium subscription and revoke access to premium content</strong></li>
-                                    <?php endif; ?>
-                                </ul>
-                                <p class="mb-0"><strong>This action cannot be undone.</strong></p>
-                            </div>
-
-                            <!-- Unsubscribe Form -->
-                            <form method="POST" class="text-center">
+                        <!-- Additional feedback -->
                                 <div class="mb-3">
-                                    <div class="form-check d-inline-block">
-                                        <input class="form-check-input" type="checkbox" id="confirmCheck" required>
-                                        <label class="form-check-label" for="confirmCheck">
-                                            I understand the consequences and want to unsubscribe
-                                        </label>
+                            <label for="feedback" class="form-label">Additional feedback (optional)</label>
+                            <textarea class="form-control feedback-textarea" id="feedback" name="feedback" 
+                                      placeholder="Please share any additional thoughts or suggestions..."></textarea>
                                     </div>
                                 </div>
                                 
-                                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                                    <a href="profile.php" class="btn btn-secondary me-md-2">
+                    <!-- Unsubscribe Actions -->
+                    <div class="unsubscribe-actions">
+                        <button type="submit" class="btn btn-unsubscribe btn-lg">
+                            <i class="fas fa-times me-2"></i>Unsubscribe
+                        </button>
+                        <a href="index.php" class="btn btn-cancel btn-lg">
                                         <i class="fas fa-arrow-left me-2"></i>Cancel
                                     </a>
-                                    <button type="submit" name="confirm_unsubscribe" class="btn btn-danger">
-                                        <i class="fas fa-unlink me-2"></i>Yes, Unsubscribe
-                                    </button>
                                 </div>
                             </form>
-
+            </div>
+        <?php else: ?>
+            <!-- Success/Error Message -->
+            <div class="unsubscribe-form">
+                <div class="success-message">
+                    <?php if ($messageType === 'success'): ?>
+                        <i class="fas fa-check-circle"></i>
+                        <h2>Unsubscribed Successfully</h2>
+                        <p><?php echo htmlspecialchars($message); ?></p>
+                        <p>You can always resubscribe in the future if you change your mind.</p>
+                        <a href="index.php" class="btn btn-primary btn-lg">
+                            <i class="fas fa-home me-2"></i>Return to Home
+                        </a>
                         <?php else: ?>
-                            <!-- No Active Subscription -->
-                            <div class="text-center py-4">
-                                <i class="fas fa-envelope-open fa-4x text-muted mb-3"></i>
-                                <h5>No Active Subscription</h5>
-                                <p class="text-muted mb-4">You don't have an active newsletter subscription to unsubscribe from.</p>
-                                
-                                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                                    <a href="index.php" class="btn btn-primary me-md-2">
-                                        <i class="fas fa-home me-2"></i>Go to Homepage
-                                    </a>
-                                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newsletterModal">
-                                        <i class="fas fa-envelope me-2"></i>Subscribe to Newsletter
-                                    </button>
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h2><?php echo $messageType === 'danger' ? 'Error' : 'Notice'; ?></h2>
+                        <p><?php echo htmlspecialchars($message); ?></p>
+                        <a href="index.php" class="btn btn-primary btn-lg">
+                            <i class="fas fa-home me-2"></i>Return to Home
+                        </a>
+                    <?php endif; ?>
                                 </div>
                             </div>
                         <?php endif; ?>
                     </div>
                 </div>
 
-                <!-- Alternative Options -->
-                <?php if ($subscription && $subscription['is_active']): ?>
-                <div class="card mt-4">
-                    <div class="card-header">
-                        <h6 class="mb-0">Alternative Options</h6>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted">Instead of unsubscribing completely, you might want to:</p>
-                        <div class="d-grid gap-2 d-md-flex">
-                            <a href="subscription-settings.php" class="btn btn-outline-info me-md-2">
-                                <i class="fas fa-cog me-2"></i>Change Preferences
-                            </a>
-                            <?php if ($subscription['subscription_type'] === 'premium'): ?>
-                                <a href="subscription-settings.php" class="btn btn-outline-warning">
-                                    <i class="fas fa-arrow-down me-2"></i>Downgrade to Free Newsletter
-                                </a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-                <?php endif; ?>
-            </div>
-        </div>
-    </main>
+<script>
+// Auto-resize feedback textarea
+document.getElementById('feedback')?.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = this.scrollHeight + 'px';
+});
+
+// Show/hide feedback textarea based on reason selection
+document.querySelectorAll('input[name="reason"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const feedbackTextarea = document.getElementById('feedback');
+        if (this.value === 'other') {
+            feedbackTextarea.style.display = 'block';
+            feedbackTextarea.required = true;
+        } else {
+            feedbackTextarea.style.display = 'none';
+            feedbackTextarea.required = false;
+        }
+    });
+});
+</script>
 
     <?php include 'includes/footer.php'; ?>
-    <?php include 'includes/modals.php'; ?>
-    <?php include 'includes/scripts.php'; ?>
-</body>
-</html>

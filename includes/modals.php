@@ -126,7 +126,7 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="registerTerms" required>
                             <label class="form-check-label" for="registerTerms">
-                                I agree to the <a href="#" target="_blank">Terms of Service</a> and <a href="#" target="_blank">Privacy Policy</a>
+                                I agree to the <a href="terms-of-service.php" target="_blank">Terms of Service</a> and <a href="privacy-policy.php" target="_blank">Privacy Policy</a>
                             </label>
                         </div>
                     </div>

@@ -234,6 +234,7 @@ include '../includes/head.php';
                             <th>Title</th>
                             <th>Category</th>
                             <th>Status</th>
+                            <th>Views</th>
                             <th>Date</th>
                             <th>Actions</th>
                         </tr>
@@ -241,7 +242,7 @@ include '../includes/head.php';
                     <tbody>
                         <?php if (empty($allPosts)): ?>
                         <tr>
-                            <td colspan="5" class="text-center text-muted">
+                            <td colspan="6" class="text-center text-muted">
                                 <i class="fas fa-inbox fa-2x mb-2"></i>
                                 <p>No posts found. <a href="posts.php?action=add">Create your first post</a></p>
                             </td>
@@ -265,6 +266,12 @@ include '../includes/head.php';
                                 <?php else: ?>
                                     <span class="badge bg-secondary">Draft</span>
                                 <?php endif; ?>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">
+                                    <i class="fas fa-eye me-1"></i>
+                                    <?php echo number_format($postItem['view_count'] ?? 0); ?>
+                                </span>
                             </td>
                             <td><?php echo date('Y-m-d', strtotime($postItem['created_at'])); ?></td>
                             <td>

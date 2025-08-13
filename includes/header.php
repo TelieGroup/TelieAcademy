@@ -43,7 +43,7 @@ if (!empty($authError)) {
 <!-- Navigation -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
     <div class="container">
-        <a class="navbar-brand fw-bold" href="index.php">
+        <a class="navbar-brand fw-bold" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../index.php' : 'index.php'; ?>">
             <i class="fas fa-graduation-cap me-2"></i>TelieAcademy
         </a>
         
@@ -54,24 +54,20 @@ if (!empty($authError)) {
         <div class="collapse navbar-collapse" id="navbarNav">
             <!-- Main Navigation Links -->
             <div class="navbar-nav me-auto mb-2 mb-lg-0">
-                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>" href="index.php">Home</a>
-                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'categories.php' ? 'active' : ''; ?>" href="categories.php">Categories</a>
-                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'posts.php' ? 'active' : ''; ?>" href="posts.php">All Posts</a>
-                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'tags.php' ? 'active' : ''; ?>" href="tags.php">Tags</a>
-                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'search.php' ? 'active' : ''; ?>" href="search.php">
-                    <i class="fas fa-search me-1"></i>Search
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../index.php' : 'index.php'; ?>">Home</a>
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'categories.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../categories.php' : 'categories.php'; ?>">Categories</a>
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'posts.php' ? 'active' : ''; ?>" href="<?php echo basename($_SERVER['PHP_SELF']) == 'posts.php' ? '#' : (strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../posts.php' : 'posts.php'); ?>">All Posts</a>
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'tags.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../tags.php' : 'tags.php'; ?>">Tags</a>
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'courses.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../courses.php' : 'courses.php'; ?>">
+                    <i class="fas fa-graduation-cap me-1"></i>Course Materials
+                </a>
+
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'contact-us.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../contact-us.php' : 'contact-us.php'; ?>">
+                    <i class="fas fa-envelope me-1"></i>Contact Us
                 </a>
             </div>
             
-            <!-- Search Bar - Responsive Design -->
-            <form class="d-flex me-2 me-lg-3" role="search" id="searchForm">
-                <div class="input-group input-group-sm">
-                    <input class="form-control" type="search" placeholder="Search..." aria-label="Search" id="searchInput">
-                    <button class="btn btn-outline-light" type="submit">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
-            </form>
+
             
             <!-- User Actions Section -->
             <div class="navbar-nav align-items-center">
@@ -119,15 +115,18 @@ if (!empty($authError)) {
                 
                 <!-- User Authentication -->
                 <div class="nav-item">
-                    <span class="text-white" id="loginBtnSpan" style="display: none;">
-                        <button class="btn btn-outline-primary btn-sm" id="loginBtn" data-bs-toggle="modal" data-bs-target="#loginModal">
-                            <i class="fas fa-user"></i> Login
-                        </button>
-                    </span>
-                    <span id="userInfo" class="text-white" style="display: none;">
+                    <?php if (!$isLoggedIn): ?>
+                        <!-- Login Button for non-logged in users -->
+                        <span class="text-white">
+                            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal">
+                                <i class="fas fa-user"></i> Login
+                            </button>
+                        </span>
+                    <?php else: ?>
+                        <!-- User Info for logged in users -->
                         <div class="d-flex align-items-center">
                             <div class="me-2">
-                                <?php if ($isLoggedIn && !empty($currentUser['profile_picture'])): ?>
+                                <?php if (!empty($currentUser['profile_picture'])): ?>
                                     <img src="<?php echo htmlspecialchars($currentUser['profile_picture']); ?>" 
                                          alt="Profile Picture" 
                                          class="rounded-circle" 
@@ -138,25 +137,27 @@ if (!empty($authError)) {
                             </div>
                             <div class="d-none d-lg-block me-2">
                                 <small>
-                                    <span id="username"></span>!
+                                    <?php echo htmlspecialchars($currentUser['username']); ?>!
                                 </small>
                             </div>
                             <div class="d-flex flex-column flex-sm-row gap-1">
-                                <a href="bookmarks.php" class="btn btn-outline-primary btn-sm" id="bookmarksBtn" title="My Bookmarks">
+                                <a href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../bookmarks.php' : 'bookmarks.php'; ?>" class="btn btn-outline-info btn-sm" title="My Bookmarks">
                                     <i class="fas fa-bookmark"></i>
                                 </a>
-                                <a href="profile.php" class="btn btn-outline-primary btn-sm" id="profileBtn" title="Profile">
+                                <a href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../profile.php' : 'profile.php'; ?>" class="btn btn-outline-info btn-sm" title="Profile">
                                     <i class="fas fa-user"></i>
                                 </a>
                                 <?php if ($isAdmin): ?>
-                                <a href="admin/" class="btn btn-outline-warning btn-sm" id="adminBtn" title="Admin Panel">
+                                <a href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? 'index.php' : 'admin/'; ?>" class="btn btn-outline-warning btn-sm" title="Admin Panel">
                                     <i class="fas fa-cog"></i>
                                 </a>
                                 <?php endif; ?>
-                                <button class="btn btn-outline-primary btn-sm" id="logoutBtn" title="Logout">Logout</button>
+                                <a href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../logout.php' : 'logout.php'; ?>" class="btn btn-outline-danger btn-sm" title="Logout">
+                                    <i class="fas fa-sign-out-alt me-1"></i>Logout
+                                </a>
                             </div>
                         </div>
-                    </span>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

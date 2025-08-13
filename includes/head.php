@@ -15,7 +15,7 @@ require_once dirname(__DIR__) . '/config/session.php';
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=<?php echo time(); ?>">
     
     <!-- Open Graph Meta Tags -->
     <meta property="og:title" content="<?php echo isset($pageTitle) ? $pageTitle . ' - TelieAcademy' : 'TelieAcademy - Tech Tutorial Blog'; ?>">

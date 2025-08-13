@@ -38,8 +38,28 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'send_newsletter.php' ? 'active' : ''; ?>" href="send_newsletter.php">
+                    <i class="fas fa-paper-plane me-2"></i>Send Newsletter
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'media.php' ? 'active' : ''; ?>" href="media.php">
                     <i class="fas fa-images me-2"></i>Media
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'courses.php' ? 'active' : ''; ?>" href="courses.php">
+                    <i class="fas fa-graduation-cap me-2"></i>Course Management
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'download_analytics.php' ? 'active' : ''; ?>" href="download_analytics.php">
+                    <i class="fas fa-chart-line me-2"></i>Download Analytics
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'contact_messages.php' ? 'active' : ''; ?>" href="contact_messages.php">
+                    <i class="fas fa-envelope me-2"></i>Contact Messages
                 </a>
             </li>
             <li class="nav-item">

@@ -491,4 +491,41 @@ include 'includes/head.php';
 
     <?php include 'includes/footer.php'; ?>
     <?php include 'includes/modals.php'; ?>
-    <?php include 'includes/scripts.php'; ?> 
+    <?php include 'includes/scripts.php'; ?>
+    
+    <script>
+    // Initialize voting and bookmark functionality for listing pages
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Initializing listing page functionality...');
+        
+        // Initialize voting functionality
+        if (typeof initializeVoting === 'function') {
+            console.log('Initializing voting functionality...');
+            initializeVoting();
+        } else {
+            console.warn('initializeVoting function not found');
+        }
+        
+        // Initialize bookmark functionality
+        if (typeof initializeBookmarks === 'function') {
+            console.log('Initializing bookmark functionality...');
+            initializeBookmarks();
+        } else {
+            console.warn('initializeBookmarks function not found');
+        }
+        
+        // Check if vote buttons exist (using the correct class names)
+        const voteButtons = document.querySelectorAll('.vote-btn-modern');
+        console.log('Vote buttons found on listing page:', voteButtons.length);
+        
+        // Check if bookmark buttons exist
+        const bookmarkButtons = document.querySelectorAll('.bookmark-btn');
+        console.log('Bookmark buttons found on listing page:', bookmarkButtons.length);
+        
+        // If no vote buttons found with .vote-btn-modern, try .vote-btn
+        if (voteButtons.length === 0) {
+            const altVoteButtons = document.querySelectorAll('.vote-btn');
+            console.log('Alternative vote buttons (.vote-btn) found:', altVoteButtons.length);
+        }
+    });
+    </script> 

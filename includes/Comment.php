@@ -11,11 +11,12 @@ class Comment {
 
     // Get comments for a post
     public function getCommentsByPost($postId) {
-        $query = "SELECT c.*, u.username
+        $query = "SELECT c.*, u.username, 
+                         COALESCE(c.reply_count, 0) as reply_count
                   FROM " . $this->table . " c
                   LEFT JOIN users u ON c.user_id = u.id
                   WHERE c.post_id = :post_id AND c.status = 'approved'
-                  ORDER BY c.created_at ASC";
+                  ORDER BY c.created_at DESC";
 
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':post_id', $postId);

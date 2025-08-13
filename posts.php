@@ -209,6 +209,10 @@ include 'includes/head.php';
                             <div class="author-details">
                                 <span class="author-name"><?php echo htmlspecialchars($post['author_name']); ?></span>
                                 <span class="publish-date"><?php echo date('M j, Y', strtotime($post['published_at'])); ?></span>
+                                <span class="view-count">
+                                    <i class="fas fa-eye me-1"></i>
+                                    <?php echo number_format($post['view_count'] ?? 0); ?>
+                                </span>
                             </div>
                         </div>
                             
@@ -379,4 +383,41 @@ include 'includes/head.php';
 
     <?php include 'includes/footer.php'; ?>
     <?php include 'includes/modals.php'; ?>
-    <?php include 'includes/scripts.php'; ?> 
+    <?php include 'includes/scripts.php'; ?>
+    
+    <script>
+    // Initialize voting and bookmark functionality for listing pages
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Initializing posts listing page functionality...');
+        
+        // Initialize voting functionality
+        if (typeof initializeVoting === 'function') {
+            console.log('Initializing voting functionality...');
+            initializeVoting();
+        } else {
+            console.warn('initializeVoting function not found');
+        }
+        
+        // Initialize bookmark functionality
+        if (typeof initializeBookmarks === 'function') {
+            console.log('Initializing bookmark functionality...');
+            initializeBookmarks();
+        } else {
+            console.warn('initializeBookmarks function not found');
+        }
+        
+        // Check if vote buttons exist (using the correct class names)
+        const voteButtons = document.querySelectorAll('.vote-btn-modern');
+        console.log('Vote buttons found on posts listing page:', voteButtons.length);
+        
+        // Check if bookmark buttons exist
+        const bookmarkButtons = document.querySelectorAll('.bookmark-btn');
+        console.log('Bookmark buttons found on posts listing page:', bookmarkButtons.length);
+        
+        // If no vote buttons found with .vote-btn-modern, try .vote-btn
+        if (voteButtons.length === 0) {
+            const altVoteButtons = document.querySelectorAll('.vote-btn');
+            console.log('Alternative vote buttons (.vote-btn) found:', altVoteButtons.length);
+        }
+    });
+    </script> 

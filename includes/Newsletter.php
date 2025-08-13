@@ -757,5 +757,39 @@ class Newsletter {
             return ['synced' => false, 'is_premium' => false, 'error' => $e->getMessage()];
         }
     }
+
+    // Get subscribers by subscription type
+    public function getSubscribersByType($type) {
+        try {
+            $query = "SELECT id, email, name, subscription_type, preferences, frequency 
+                      FROM " . $this->table . " 
+                      WHERE subscription_type = :type AND is_active = TRUE AND verified_at IS NOT NULL
+                      ORDER BY subscribed_at DESC";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':type', $type);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error getting subscribers by type: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    // Log unsubscribe feedback
+    public function logUnsubscribeFeedback($email, $reason, $feedback) {
+        try {
+            $query = "INSERT INTO unsubscribe_feedback (email, reason, feedback, created_at) 
+                      VALUES (:email, :reason, :feedback, NOW())";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':email', $email);
+            $stmt->bindParam(':reason', $reason);
+            $stmt->bindParam(':feedback', $feedback);
+            $stmt->execute();
+            return true;
+        } catch (Exception $e) {
+            error_log("Error logging unsubscribe feedback: " . $e->getMessage());
+            return false;
+        }
+    }
 }
 ?> 
