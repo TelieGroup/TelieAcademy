@@ -55,11 +55,11 @@ include 'includes/head.php';
                 <div class="col-12">
                     <h3 class="mb-4">Popular Tags</h3>
                     <div class="d-flex flex-wrap gap-2">
-                        <a href="tags.php" class="btn <?php echo !$selectedTag ? 'btn-primary' : 'btn-outline-primary'; ?>">
+                        <a href="tags" class="btn <?php echo !$selectedTag ? 'btn-primary' : 'btn-outline-primary'; ?>">
                             All Tags
                         </a>
                         <?php foreach ($popularTags as $tagItem): ?>
-                        <a href="tags.php?tag=<?php echo $tagItem['slug']; ?>" 
+                        <a href="tags?tag=<?php echo $tagItem['slug']; ?>" 
                            class="btn <?php echo $selectedTag === $tagItem['slug'] ? 'btn-primary' : 'btn-outline-primary'; ?>"
                            style="<?php echo $selectedTag !== $tagItem['slug'] ? 'border-color: ' . htmlspecialchars($tagItem['color'] ?? '#007bff') . '; color: ' . htmlspecialchars($tagItem['color'] ?? '#007bff') . ';' : ''; ?>">
                             #<?php echo htmlspecialchars($tagItem['name']); ?>
@@ -80,7 +80,7 @@ include 'includes/head.php';
                     <i class="fas fa-tags fa-3x text-muted mb-3"></i>
                     <h3 class="text-muted">No tutorials found</h3>
                     <p class="text-muted">No tutorials available with this tag yet.</p>
-                    <a href="tags.php" class="btn btn-primary">Browse All Tags</a>
+                    <a href="tags" class="btn btn-primary">Browse All Tags</a>
                 </div>
                 <?php else: ?>
                 <?php foreach ($posts as $post): ?>
@@ -97,7 +97,7 @@ include 'includes/head.php';
                             </div>
                             
                             <h5 class="card-title">
-                                <a href="post.php?slug=<?php echo $post['slug']; ?>" class="text-decoration-none">
+                                <a href="post?slug=<?php echo $post['slug']; ?>" class="text-decoration-none">
                                     <?php echo htmlspecialchars($post['title']); ?>
                                 </a>
                             </h5>

@@ -1511,7 +1511,7 @@ function downloadMaterial(materialId) {
     downloadBtn.disabled = true;
     
     // Open download in new tab
-    const downloadWindow = window.open(`../download_material.php?id=${materialId}`, '_blank');
+            const downloadWindow = window.open(`../download_material?id=${materialId}`, '_blank');
     
     // Check if download window opened successfully
     if (downloadWindow) {

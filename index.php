@@ -44,6 +44,29 @@ include 'includes/head.php';
 ?>
     <?php include 'includes/header.php'; ?>
 
+    <!-- Alert Messages -->
+    <?php if (isset($_GET['login_required'])): ?>
+        <div class="container mt-3">
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <i class="fas fa-lock me-2"></i>
+                <strong>Login Required:</strong> You must be logged in to access this content.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <?php if (isset($_GET['premium_required'])): ?>
+        <div class="container mt-3">
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <i class="fas fa-crown me-2"></i>
+                <strong>Premium Required:</strong> This content is only available to premium users. 
+                <a href="#" class="alert-link" data-bs-toggle="modal" data-bs-target="#loginModal">Login</a> or 
+                <a href="#" class="alert-link" data-bs-toggle="modal" data-bs-target="#registerModal">Register</a> to upgrade.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <!-- Hero Section -->
 <section class="hero-section-modern text-center text-white">
         <div class="container">
@@ -64,14 +87,14 @@ include 'includes/head.php';
                         <a href="#featured-posts" class="btn btn-primary btn-lg me-3 hero-btn-primary">
                                 <i class="fas fa-play me-2"></i>Start Learning
                             </a>
-                        <a href="categories.php" class="btn btn-outline-light btn-lg hero-btn-secondary">
+                        <a href="categories" class="btn btn-outline-light btn-lg hero-btn-secondary">
                                 <i class="fas fa-folder me-2"></i>Browse Categories
                             </a>
                         </div>
                         
                     <!-- Search Bar -->
                     <div class="hero-search-container mb-5">
-                        <form action="search.php" method="GET" class="hero-search-form">
+                        <form action="search" method="GET" class="hero-search-form">
                             <div class="input-group">
                                 <input type="text" class="form-control form-control-lg" name="q" placeholder="Search tutorials..." aria-label="Search tutorials">
                                 <button class="btn btn-primary btn-lg" type="submit">
@@ -252,7 +275,7 @@ include 'includes/head.php';
             </div>
             
         <div class="text-center mt-5">
-            <a href="posts.php" class="btn btn-primary btn-lg view-all-btn">
+                            <a href="posts" class="btn btn-primary btn-lg view-all-btn">
                 <i class="fas fa-arrow-right me-2"></i>View All Tutorials
             </a>
         </div>
@@ -271,7 +294,7 @@ include 'includes/head.php';
                     </h2>
                     <p class="section-subtitle-modern">Most popular tutorials this month</p>
                 </div>
-                <a href="posts.php?sort=trending" class="btn btn-outline-primary btn-lg">
+                <a href="posts?sort=trending" class="btn btn-outline-primary btn-lg">
                     <i class="fas fa-fire me-2"></i>View All Trending
                 </a>
                 </div>
@@ -428,7 +451,7 @@ include 'includes/head.php';
                     <p class="category-description"><?php echo htmlspecialchars($cat['description']); ?></p>
                     <div class="category-meta">
                         <span class="tutorial-count"><?php echo $cat['post_count']; ?> tutorials</span>
-                        <a href="categories.php?category=<?php echo $cat['slug']; ?>" class="explore-btn">
+                        <a href="categories?category=<?php echo $cat['slug']; ?>" class="explore-btn">
                             <i class="fas fa-arrow-right"></i>
                         </a>
                     </div>

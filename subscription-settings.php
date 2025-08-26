@@ -8,7 +8,7 @@ $newsletter = new Newsletter();
 
 // Check if user is logged in
 if (!$user->isLoggedIn()) {
-    header('Location: index.php');
+    header('Location: index');
     exit;
 }
 

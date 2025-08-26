@@ -169,7 +169,7 @@ include 'includes/head.php';
                             <strong>Premium Required:</strong> Upgrade to access course materials
                         </div>
                         <br>
-                        <a href="subscription-settings.php" class="btn btn-warning btn-lg">
+                        <a href="subscription-settings" class="btn btn-warning btn-lg">
                             <i class="fas fa-crown me-2"></i>Upgrade to Premium
                         </a>
                     </div>
@@ -232,12 +232,12 @@ include 'includes/head.php';
                                     
                                     <div class="mt-auto">
                                         <div class="d-grid gap-2">
-                                            <a href="course.php?slug=<?php echo $courseItem['slug']; ?>" 
+                                            <a href="course?slug=<?php echo $courseItem['slug']; ?>" 
                                                class="btn btn-primary">
                                                 <i class="fas fa-book-open me-2"></i>View Course
                                             </a>
                                             <?php if ($moduleCount > 0 && $totalMaterials > 0): ?>
-                                                <a href="course.php?slug=<?php echo $courseItem['slug']; ?>" 
+                                                <a href="course?slug=<?php echo $courseItem['slug']; ?>" 
                                                    class="btn btn-outline-success btn-sm">
                                                     <i class="fas fa-eye me-2"></i>Browse Materials
                                                 </a>
@@ -264,7 +264,7 @@ include 'includes/head.php';
                                 </p>
                                 
                                 <?php if ($isLoggedIn): ?>
-                                    <a href="subscription-settings.php" class="btn btn-warning btn-lg">
+                                    <a href="subscription-settings" class="btn btn-warning btn-lg">
                                         <i class="fas fa-crown me-2"></i>Upgrade to Premium
                                     </a>
                                 <?php else: ?>

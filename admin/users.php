@@ -6,13 +6,13 @@ $user = new User();
 
 // Check if user is logged in and is admin
 if (!$user->isLoggedIn()) {
-    header('Location: ../index.php');
+    header('Location: ../index');
     exit;
 }
 
 $currentUser = $user->getCurrentUser();
 if (!$currentUser || !$currentUser['is_admin']) {
-    header('Location: ../index.php');
+    header('Location: ../index');
     exit;
 }
 
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             
             if ($result['success']) {
-                header('Location: users.php?message=' . urlencode($result['message']));
+                header('Location: users?message=' . urlencode($result['message']));
                 exit;
             } else {
                 $error = $result['message'];
@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $user->updateUser($userId, $data);
             
             if ($result['success']) {
-                header('Location: users.php?message=' . urlencode($result['message']));
+                header('Location: users?message=' . urlencode($result['message']));
                 exit;
             } else {
                 $error = $result['message'];
@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $user->deleteUser($userId);
             
             if ($result['success']) {
-                header('Location: users.php?message=' . urlencode($result['message']));
+                header('Location: users?message=' . urlencode($result['message']));
                 exit;
             } else {
                 $error = $result['message'];
@@ -145,9 +145,26 @@ include '../includes/head.php';
 
             <?php if ($action === 'list'): ?>
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">Manage Users</h1>
+                <h1 class="h2">
+                    Manage Users
+                    <?php
+                    try {
+                        $stats = $user->getUserStatistics();
+                        $totalUsers = $stats['total_users'] ?? 0;
+                        $newUsersToday = $user->getNewUsersToday();
+                        $premiumUsers = $stats['premium_users'] ?? 0;
+                        if ($newUsersToday > 0):
+                        ?>
+                        <span class="badge bg-success ms-2"><?php echo $newUsersToday; ?> New Today</span>
+                        <?php endif; ?>
+                        <span class="badge bg-info ms-2"><?php echo $totalUsers; ?> Total</span>
+                        <?php if ($premiumUsers > 0): ?>
+                        <span class="badge bg-warning text-dark ms-2"><?php echo $premiumUsers; ?> Premium</span>
+                        <?php endif; ?>
+                    <?php } catch (Exception $e) { /* Silently fail */ } ?>
+                </h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
-                    <a href="users.php?action=add" class="btn btn-sm btn-primary">
+                    <a href="users?action=add" class="btn btn-sm btn-primary">
                         <i class="fas fa-plus me-1"></i>New User
                     </a>
                 </div>
@@ -246,6 +263,21 @@ include '../includes/head.php';
                                 <label class="form-label">Recent Registration</label>
                                 <p class="text-muted mb-0"><?php echo $stats['recent_registration'] ?? 'No users'; ?></p>
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label">New Users Today</label>
+                                <?php
+                                try {
+                                    $newUsersToday = $user->getNewUsersToday();
+                                    if ($newUsersToday > 0):
+                                    ?>
+                                    <h4 class="text-success mb-0"><?php echo $newUsersToday; ?></h4>
+                                    <?php else: ?>
+                                    <h4 class="text-muted mb-0">0</h4>
+                                    <?php endif; ?>
+                                <?php } catch (Exception $e) { ?>
+                                    <h4 class="text-muted mb-0">-</h4>
+                                <?php } ?>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -256,13 +288,13 @@ include '../includes/head.php';
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">Add New User</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
-                    <a href="users.php" class="btn btn-sm btn-secondary">
+                    <a href="users" class="btn btn-sm btn-secondary">
                         <i class="fas fa-arrow-left me-1"></i>Back to Users
                     </a>
                 </div>
             </div>
 
-            <form method="POST" action="users.php?action=add">
+            <form method="POST" action="users?action=add">
                 <input type="hidden" name="action" value="add">
                 <div class="row">
                     <div class="col-md-8">
@@ -323,13 +355,13 @@ include '../includes/head.php';
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">Edit User</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
-                    <a href="users.php" class="btn btn-sm btn-secondary">
+                    <a href="users" class="btn btn-sm btn-secondary">
                         <i class="fas fa-arrow-left me-1"></i>Back to Users
                     </a>
                 </div>
             </div>
 
-            <form method="POST" action="users.php?action=edit">
+            <form method="POST" action="users?action=edit">
                 <input type="hidden" name="action" value="edit">
                 <input type="hidden" name="user_id" value="<?php echo $userId; ?>">
                 <div class="row">
@@ -373,7 +405,7 @@ include '../includes/head.php';
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save me-1"></i>Update User
                             </button>
-                            <a href="users.php" class="btn btn-outline-secondary">
+                            <a href="users" class="btn btn-outline-secondary">
                                 <i class="fas fa-arrow-left me-1"></i>Cancel
                             </a>
                         </div>
@@ -415,7 +447,7 @@ function deleteUser(userId, username) {
     if (confirm('Are you sure you want to delete the user "' + username + '"? This action cannot be undone.')) {
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = 'users.php';
+        form.action = 'users';
         
         const actionInput = document.createElement('input');
         actionInput.type = 'hidden';

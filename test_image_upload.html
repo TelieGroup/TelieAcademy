@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Image Upload</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .test-section {
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .response-area {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            min-height: 200px;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+        }
+        .btn-group {
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-5">Image Upload Test</h1>
+        
+        <div class="test-section">
+            <h3>Test Image Upload</h3>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-primary" onclick="testUpload('admin/upload_image.php')">Test Authenticated Upload</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="testUpload('admin/test_upload.php')">Test Without Auth</button>
+                <button type="button" class="btn btn-outline-info" onclick="testUpload('admin/debug_upload.php')">Debug Upload</button>
+                <button type="button" class="btn btn-outline-success" onclick="testUpload('admin/simple_upload.php')">Simple Upload</button>
+                <button type="button" class="btn btn-outline-warning" onclick="testUpload('admin/isolated_upload.php')">Isolated Upload</button>
+            </div>
+            
+            <div class="btn-group mt-2" role="group">
+                <button type="button" class="btn btn-outline-dark" onclick="testDatabase()">Test Database Connection</button>
+            </div>
+            
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="imageFile" class="form-label">Select Image:</label>
+                    <input type="file" class="form-control" id="imageFile" name="image" accept="image/*" required>
+                </div>
+                <div class="mb-3">
+                    <label for="altText" class="form-label">Alt Text:</label>
+                    <input type="text" class="form-control" id="altText" name="alt_text" placeholder="Image description">
+                </div>
+                <div class="mb-3">
+                    <label for="caption" class="form-label">Caption:</label>
+                    <input type="text" class="form-control" id="caption" name="caption" placeholder="Optional caption">
+                </div>
+                <button type="submit" class="btn btn-primary">Upload Image</button>
+            </form>
+        </div>
+        
+        <div class="test-section">
+            <h3>Response</h3>
+            <div id="response" class="response-area">Response will appear here...</div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Debug Info</h3>
+            <div id="debug" class="response-area">Debug information will appear here...</div>
+        </div>
+    </div>
+
+    <script>
+        let currentEndpoint = 'admin/upload_image.php';
+        
+        function testUpload(endpoint) {
+            currentEndpoint = endpoint;
+            document.getElementById('debug').textContent = `Testing endpoint: ${endpoint}`;
+            document.getElementById('response').textContent = 'Select a file and click Upload to test...';
+        }
+        
+        function testDatabase() {
+            document.getElementById('debug').textContent = 'Testing database connection...';
+            document.getElementById('response').textContent = 'Testing database connection...';
+            
+            fetch('admin/test_database.php')
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('response').innerHTML = html;
+                document.getElementById('debug').textContent = 'Database test completed. Check response above.';
+            })
+            .catch(error => {
+                console.error('Database test error:', error);
+                document.getElementById('response').textContent = 'Database test failed: ' + error.message;
+                document.getElementById('debug').textContent = '❌ Database test failed: ' + error.message;
+            });
+        }
+        
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const fileInput = document.getElementById('imageFile');
+            const altText = document.getElementById('altText').value;
+            const caption = document.getElementById('caption').value;
+            
+            if (!fileInput.files[0]) {
+                alert('Please select a file');
+                return;
+            }
+            
+            formData.append('image', fileInput.files[0]);
+            formData.append('alt_text', altText);
+            formData.append('caption', caption);
+            
+            // Show debug info
+            document.getElementById('debug').textContent = `Uploading to: ${currentEndpoint}\nFile: ${fileInput.files[0].name}\nSize: ${fileInput.files[0].size} bytes\nType: ${fileInput.files[0].type}`;
+            
+            // Upload the image
+            fetch(currentEndpoint, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                // Log the raw response for debugging
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                // Get response text first to see what we're actually getting
+                return response.text();
+            })
+            .then(text => {
+                console.log('Raw response text:', text);
+                
+                // Try to parse as JSON
+                try {
+                    const data = JSON.parse(text);
+                    document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+                    
+                    if (data.success) {
+                        document.getElementById('debug').textContent += '\n\n✅ Upload successful!';
+                    } else {
+                        document.getElementById('debug').textContent += '\n\n❌ Upload failed: ' + data.message;
+                    }
+                } catch (parseError) {
+                    console.error('JSON parse error:', parseError);
+                    document.getElementById('response').textContent = 'Error parsing JSON:\n' + parseError.message + '\n\nRaw response:\n' + text;
+                    document.getElementById('debug').textContent += '\n\n❌ JSON parse error: ' + parseError.message;
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                document.getElementById('response').textContent = 'Fetch error: ' + error.message;
+                document.getElementById('debug').textContent += '\n\n❌ Fetch error: ' + error.message;
+            });
+        });
+    </script>
+</body>
+</html> 

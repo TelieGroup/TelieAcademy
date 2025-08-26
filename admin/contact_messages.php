@@ -6,7 +6,7 @@ require_once '../includes/ContactMessage.php';
 // Check if user is admin
 $user = new User();
 if (!$user->isLoggedIn() || !$user->isAdmin()) {
-    header('Location: ../index.php');
+    header('Location: ../index');
     exit();
 }
 
@@ -436,9 +436,19 @@ include '../includes/header.php';
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
         <!-- Page Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1><i class="fas fa-envelope me-2"></i>Contact Messages</h1>
+            <h1>
+                <i class="fas fa-envelope me-2"></i>Contact Messages
+                <?php
+                try {
+                    $newMessageCount = $contactMessage->getNewMessageCount();
+                    if ($newMessageCount > 0):
+                    ?>
+                    <span class="badge bg-danger ms-2"><?php echo $newMessageCount; ?> New</span>
+                    <?php endif; ?>
+                <?php } catch (Exception $e) { /* Silently fail */ } ?>
+                </h1>
             <div>
-                <a href="index.php" class="btn btn-outline-secondary">
+                <a href="index" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
                 </a>
             </div>
@@ -513,7 +523,7 @@ include '../includes/header.php';
                     <button type="submit" class="btn btn-primary me-2">
                         <i class="fas fa-search me-1"></i>Filter
                     </button>
-                    <a href="contact_messages.php" class="btn btn-outline-secondary">
+                    <a href="contact_messages" class="btn btn-outline-secondary">
                         <i class="fas fa-times me-1"></i>Clear
                     </a>
                 </div>
@@ -721,7 +731,7 @@ include '../includes/header.php';
 <script>
 // View message details
 function viewMessage(messageId) {
-    fetch(`get_message.php?id=${messageId}`)
+    fetch(`get_message?id=${messageId}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {

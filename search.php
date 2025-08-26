@@ -54,7 +54,7 @@ include 'includes/head.php';
                                 </p>
                             <?php endif; ?>
                         </div>
-                        <a href="index.php" class="btn btn-outline-primary">
+                        <a href="index" class="btn btn-outline-primary">
                             <i class="fas fa-arrow-left me-2"></i>Back to Home
                         </a>
                     </div>
@@ -62,7 +62,7 @@ include 'includes/head.php';
                     <!-- Search Form -->
                     <div class="card mb-4">
                         <div class="card-body">
-                            <form method="GET" action="search.php" class="row g-3">
+                            <form method="GET" action="search" class="row g-3">
                                 <div class="col-md-8">
                                     <input type="text" 
                                            class="form-control form-control-lg" 
@@ -98,7 +98,7 @@ include 'includes/head.php';
                                         
                                         <div class="card-body">
                                             <h5 class="card-title">
-                                                <a href="post.php?slug=<?php echo $result['slug']; ?>">
+                                                <a href="post?slug=<?php echo $result['slug']; ?>">
                                                     <?php echo htmlspecialchars($result['title']); ?>
                                                 </a>
                                             </h5>
@@ -129,7 +129,7 @@ include 'includes/head.php';
                                                         $tagColor = $tagData ? $tagData['color'] : '#6c757d';
                                                         $tagSlug = $tagData ? $tagData['slug'] : strtolower(str_replace(' ', '-', $tagName));
                                                 ?>
-                                                <a href="tags.php?tag=<?php echo urlencode($tagSlug); ?>" class="tag-badge" style="background-color: <?php echo htmlspecialchars($tagColor); ?>; color: white;">
+                                                <a href="tags?tag=<?php echo urlencode($tagSlug); ?>" class="tag-badge" style="background-color: <?php echo htmlspecialchars($tagColor); ?>; color: white;">
                                                     <?php echo htmlspecialchars($tagName); ?>
                                                 </a>
                                                 <?php 
@@ -218,8 +218,8 @@ include 'includes/head.php';
                                                     <li>Browse categories instead</li>
                                                 </ul>
                                                 <div class="mt-3">
-                                                    <a href="categories.php" class="btn btn-outline-primary me-2">Browse Categories</a>
-                                                    <a href="tags.php" class="btn btn-outline-secondary">Browse Tags</a>
+                                                                    <a href="categories" class="btn btn-outline-primary me-2">Browse Categories</a>
+                <a href="tags" class="btn btn-outline-secondary">Browse Tags</a>
                                                 </div>
                                             </div>
                                         </div>
@@ -243,12 +243,12 @@ include 'includes/head.php';
                                         <div class="card-body">
                                             <h5 class="card-title">Popular Search Terms:</h5>
                                             <div class="d-flex flex-wrap gap-2 justify-content-center">
-                                                <a href="search.php?q=javascript" class="badge bg-primary text-decoration-none">JavaScript</a>
-                                                <a href="search.php?q=react" class="badge bg-primary text-decoration-none">React</a>
-                                                <a href="search.php?q=python" class="badge bg-primary text-decoration-none">Python</a>
-                                                <a href="search.php?q=web+development" class="badge bg-primary text-decoration-none">Web Development</a>
-                                                <a href="search.php?q=databases" class="badge bg-primary text-decoration-none">Databases</a>
-                                                <a href="search.php?q=api" class="badge bg-primary text-decoration-none">API</a>
+                                                                <a href="search?q=javascript" class="badge bg-primary text-decoration-none">JavaScript</a>
+                <a href="search?q=react" class="badge bg-primary text-decoration-none">React</a>
+                <a href="search?q=python" class="badge bg-primary text-decoration-none">Python</a>
+                                                                <a href="search?q=web+development" class="badge bg-primary text-decoration-none">Web Development</a>
+                <a href="search?q=databases" class="badge bg-primary text-decoration-none">Databases</a>
+                                                <a href="search?q=api" class="badge bg-primary text-decoration-none">API</a>
                                             </div>
                                         </div>
                                     </div>

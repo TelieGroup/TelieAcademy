@@ -9,7 +9,16 @@ if (session_status() == PHP_SESSION_NONE) {
     ini_set('session.gc_maxlifetime', 3600); // 1 hour
     ini_set('session.cookie_lifetime', 3600); // 1 hour
     
+    // Set cookie path to root so it's accessible from all subdirectories
+    ini_set('session.cookie_path', '/');
+    
     // Start session
     session_start();
+    
+    // Regenerate session ID periodically for security
+    if (!isset($_SESSION['last_regeneration']) || (time() - $_SESSION['last_regeneration']) > 300) {
+        session_regenerate_id(true);
+        $_SESSION['last_regeneration'] = time();
+    }
 }
 ?> 

@@ -125,7 +125,7 @@ function initializeAuth() {
 function checkAuthStatus() {
     console.log('Checking authentication status...');
     // Check authentication status from server
-    fetch('api/auth.php', {
+    fetch('api/auth', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -169,7 +169,7 @@ function handleLogin(event) {
     const password = document.getElementById('loginPassword').value;
     const messageDiv = document.getElementById('loginMessage');
     
-    fetch('api/auth.php', {
+    fetch('api/auth', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -190,8 +190,15 @@ function handleLogin(event) {
             const modal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
             modal.hide();
             
+            // Check if there's a redirect URL stored in session
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('login_required') || urlParams.has('premium_required')) {
+                // Redirect to the stored URL or reload to clear the parameters
+                setTimeout(() => location.reload(), 1000);
+            } else {
             // Reload page to show premium content
             setTimeout(() => location.reload(), 1000);
+            }
         } else {
             showAlert(data.message, 'danger', messageDiv);
         }
@@ -218,7 +225,7 @@ function handleRegister(event) {
         return;
     }
     
-    fetch('api/auth.php', {
+    fetch('api/auth', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -270,7 +277,7 @@ function handleLogout() {
         logoutBtn.disabled = true;
     }
     
-    fetch('api/auth.php', {
+    fetch('api/auth', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -309,7 +316,7 @@ function handleLogout() {
             
             // Redirect to home page after a short delay
             setTimeout(() => {
-                window.location.href = 'index.php';
+                window.location.href = 'index';
             }, 1500);
         } else {
             throw new Error(data.message || 'Logout failed');
@@ -538,7 +545,7 @@ function changeSubscriptionEmail() {
 
 // Check if user is already subscribed
 function checkSubscriptionStatus(email, inputElement) {
-    fetch('api/check_subscription.php', {
+    fetch('api/check_subscription', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -679,7 +686,7 @@ function subscribeNewsletter() {
     }
     
     // Send to server
-    fetch('api/newsletter.php', {
+    fetch('api/newsletter', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -743,7 +750,7 @@ function handleCommentSubmit(event) {
         return;
     }
     
-    fetch('api/comments.php', {
+    fetch('api/comments', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1106,7 +1113,7 @@ function initializeVoting() {
             console.log('Request data:', { post_id: postId, vote_type: voteType });
             
             // Send vote request
-            fetch('api/vote.php', {
+        fetch('api/vote', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1264,7 +1271,7 @@ function handleUnsubscribe() {
     
     if (confirm('Are you sure you want to unsubscribe from the newsletter? This action cannot be undone.')) {
         // Send unsubscribe request
-        fetch('api/unsubscribe.php', {
+        fetch('api/unsubscribe', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1302,7 +1309,7 @@ function handleUnsubscribeConfirm() {
     button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Unsubscribing...';
     
     // Send unsubscribe request
-    fetch('api/unsubscribe.php', {
+    fetch('api/unsubscribe', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1362,7 +1369,7 @@ function showRegisterModal() {
 // OAuth Functions
 function loginWithLinkedIn() {
     // Check if LinkedIn is configured
-    fetch('api/auth.php', {
+    fetch('api/auth', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1385,7 +1392,7 @@ function loginWithLinkedIn() {
             localStorage.setItem('oauth_state', state);
             
             // Redirect to LinkedIn OAuth
-            const linkedinUrl = `auth/linkedin-auth.php?state=${state}`;
+            const linkedinUrl = `auth/linkedin-auth?state=${state}`;
             window.location.href = linkedinUrl;
         } else {
             showAlert('LinkedIn OAuth is not configured. Please contact the administrator.', 'warning');
@@ -1406,7 +1413,7 @@ function loginWithGoogle() {
     console.log('loginWithGoogle function called');
     
     // Check if Google is configured
-    fetch('api/auth.php', {
+    fetch('api/auth', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1434,7 +1441,7 @@ function loginWithGoogle() {
             localStorage.setItem('oauth_state', state);
             
             // Redirect to Google OAuth
-            const googleUrl = `auth/google-auth.php?state=${state}`;
+            const googleUrl = `auth/google-auth?state=${state}`;
             console.log('Redirecting to:', googleUrl);
             window.location.href = googleUrl;
         } else {
@@ -1455,7 +1462,7 @@ function registerWithGoogle() {
 
 function loginWithGitHub() {
     // Check if GitHub is configured
-    fetch('api/auth.php', {
+    fetch('api/auth', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1478,7 +1485,7 @@ function loginWithGitHub() {
             localStorage.setItem('oauth_state', state);
             
             // Redirect to GitHub OAuth
-            const githubUrl = `auth/github-auth.php?state=${state}`;
+            const githubUrl = `auth/github-auth?state=${state}`;
             window.location.href = githubUrl;
         } else {
             showAlert('GitHub OAuth is not configured. Please contact the administrator.', 'warning');
@@ -1508,7 +1515,7 @@ function resendVerificationEmail() {
         return;
     }
     
-    fetch('api/auth.php', {
+    fetch('api/auth', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1551,7 +1558,7 @@ function handleForgotPassword(event) {
     const email = document.getElementById('forgotPasswordEmail').value;
     const messageDiv = document.getElementById('forgotPasswordMessage');
     
-    fetch('api/auth.php', {
+    fetch('api/auth', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1744,7 +1751,7 @@ function subscribeNewsletterAdvanced() {
     }
     
     // Send subscription request
-    fetch('api/newsletter.php', {
+    fetch('api/newsletter', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1853,7 +1860,7 @@ function uploadProfilePicture(input) {
     formData.append('profile_picture', file);
 
     // Upload file
-    fetch('api/profile-picture.php', {
+    fetch('api/profile-picture', {
         method: 'POST',
         body: formData
     })
@@ -1921,12 +1928,12 @@ function initializeSearch() {
             const query = searchInput.value.trim();
             
             if (query.length > 0) {
-                window.location.href = `search.php?q=${encodeURIComponent(query)}`;
+                window.location.href = `search?q=${encodeURIComponent(query)}`;
             }
         });
     }
     
-    if (window.location.pathname.includes('search.php')) {
+            if (window.location.pathname.includes('search')) {
         initializeSearchSuggestions();
     }
     
@@ -2009,7 +2016,7 @@ function initializeSearchSuggestions(searchInput = null) {
         }
         
         try {
-            const response = await fetch(`api/search_suggestions.php?q=${encodeURIComponent(query)}`);
+            const response = await fetch(`api/search_suggestions?q=${encodeURIComponent(query)}`);
             const data = await response.json();
             
             if (data.success) {
@@ -2152,7 +2159,7 @@ async function handleBookmarkClick(button, postId) {
         const isCurrentlyBookmarked = button.classList.contains('bookmarked');
         const method = isCurrentlyBookmarked ? 'DELETE' : 'POST';
         
-        const response = await fetch('api/bookmarks.php', {
+        const response = await fetch('api/bookmarks', {
             method: method,
             headers: {
                 'Content-Type': 'application/json',
@@ -2221,7 +2228,7 @@ function updateBookmarkButtonStates() {
         if (postId) {
             try {
                 console.log(`Checking bookmark status for post ${postId}...`);
-                const response = await fetch(`api/bookmarks.php?action=check&post_id=${postId}`);
+                const response = await fetch(`api/bookmarks?action=check&post_id=${postId}`);
                 const data = await response.json();
                 console.log(`Bookmark check response for post ${postId}:`, data);
                 

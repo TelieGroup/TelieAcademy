@@ -216,5 +216,21 @@ class Comment {
             return ['error' => $e->getMessage()];
         }
     }
+
+    /**
+     * Get count of pending comments for admin notification badge
+     */
+    public function getPendingCommentCount() {
+        try {
+            $query = "SELECT COUNT(*) as pending_count FROM " . $this->table . " WHERE status = 'pending'";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            $result = $stmt->fetch();
+            return (int)($result['pending_count'] ?? 0);
+        } catch (Exception $e) {
+            error_log("Error counting pending comments: " . $e->getMessage());
+            return 0;
+        }
+    }
 }
 ?> 

@@ -296,7 +296,7 @@ include 'includes/head.php';
             <p>Have questions, feedback, or need support? We're here to help! Reach out to us through any of the methods below.</p>
             <?php if ($isLoggedIn): ?>
                 <div class="mt-3">
-                    <a href="my-messages.php" class="btn btn-outline-primary">
+                    <a href="my-messages" class="btn btn-outline-primary">
                         <i class="fas fa-envelope me-2"></i>View My Messages
                     </a>
                 </div>
@@ -539,7 +539,7 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.disabled = true;
         
         // Send form data via AJAX
-        fetch('submit_contact.php', {
+        fetch('submit_contact', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -555,7 +555,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (isLoggedIn) {
                     successMessage += '<br><small class="text-muted">Your message was sent from your registered account.</small>';
-                    successMessage += '<br><br><a href="my-messages.php" class="btn btn-sm btn-outline-success">View My Messages</a>';
+                    successMessage += '<br><br><a href="my-messages" class="btn btn-sm btn-outline-success">View My Messages</a>';
                 }
                 
                 contactAlert.innerHTML = successMessage;

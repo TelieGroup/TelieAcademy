@@ -43,7 +43,7 @@ if (!empty($authError)) {
 <!-- Navigation -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
     <div class="container">
-        <a class="navbar-brand fw-bold" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../index.php' : 'index.php'; ?>">
+                        <a class="navbar-brand fw-bold" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../index' : 'index'; ?>">
             <i class="fas fa-graduation-cap me-2"></i>TelieAcademy
         </a>
         
@@ -54,15 +54,15 @@ if (!empty($authError)) {
         <div class="collapse navbar-collapse" id="navbarNav">
             <!-- Main Navigation Links -->
             <div class="navbar-nav me-auto mb-2 mb-lg-0">
-                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../index.php' : 'index.php'; ?>">Home</a>
-                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'categories.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../categories.php' : 'categories.php'; ?>">Categories</a>
-                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'posts.php' ? 'active' : ''; ?>" href="<?php echo basename($_SERVER['PHP_SELF']) == 'posts.php' ? '#' : (strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../posts.php' : 'posts.php'); ?>">All Posts</a>
-                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'tags.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../tags.php' : 'tags.php'; ?>">Tags</a>
-                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'courses.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../courses.php' : 'courses.php'; ?>">
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../index' : 'index'; ?>">Home</a>
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'categories.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../categories' : 'categories'; ?>">Categories</a>
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'posts.php' ? 'active' : ''; ?>" href="<?php echo basename($_SERVER['PHP_SELF']) == 'posts.php' ? '#' : (strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../posts' : 'posts'); ?>">All Posts</a>
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'tags.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../tags' : 'tags'; ?>">Tags</a>
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'courses.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../courses' : 'courses'; ?>">
                     <i class="fas fa-graduation-cap me-1"></i>Course Materials
                 </a>
 
-                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'contact-us.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../contact-us.php' : 'contact-us.php'; ?>">
+                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'contact-us.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../contact-us' : 'contact-us'; ?>">
                     <i class="fas fa-envelope me-1"></i>Contact Us
                 </a>
             </div>
@@ -71,6 +71,20 @@ if (!empty($authError)) {
             
             <!-- User Actions Section -->
             <div class="navbar-nav align-items-center">
+                <?php if ($isLoggedIn): ?>
+                    <?php
+                    // Compute unread contact replies badge
+                    $unreadContactReplies = 0;
+                    try {
+                        require_once dirname(__DIR__) . '/includes/ContactMessage.php';
+                        $cmForHeader = new ContactMessage();
+                        $unreadContactReplies = $cmForHeader->getUnreadReplyCountForUser($currentUser['id']);
+                    } catch (Exception $e) {
+                        $unreadContactReplies = 0;
+                    }
+                    ?>
+                <?php endif; ?>
+                
                 <!-- Newsletter Subscription -->
                 <div class="nav-item dropdown me-2">
                     <?php if ($userSubscription && $userSubscription['is_active']): ?>
@@ -92,10 +106,10 @@ if (!empty($authError)) {
                                 </small>
                             </span></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="subscription-settings.php">
+                            <li><a class="dropdown-item" href="subscription-settings">
                                 <i class="fas fa-cog me-2"></i>Manage Subscription
                             </a></li>
-                            <li><a class="dropdown-item text-warning" href="unsubscribe.php">
+                            <li><a class="dropdown-item text-warning" href="unsubscribe">
                                 <i class="fas fa-unlink me-2"></i>Unsubscribe
                             </a></li>
                         </ul>
@@ -125,34 +139,46 @@ if (!empty($authError)) {
                     <?php else: ?>
                         <!-- User Info for logged in users -->
                         <div class="d-flex align-items-center">
+                            <!-- My Messages with badge -->
+                            <a href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../my-messages' : 'my-messages'; ?>" class="btn btn-outline-info btn-sm me-2 position-relative" title="My Messages">
+                                <i class="fas fa-inbox"></i>
+                                <?php if (!empty($unreadContactReplies)): ?>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    <?php echo (int)$unreadContactReplies; ?>
+                                    <span class="visually-hidden">unread admin replies</span>
+                                </span>
+                                <?php endif; ?>
+                            </a>
                             <div class="me-2">
                                 <?php if (!empty($currentUser['profile_picture'])): ?>
                                     <img src="<?php echo htmlspecialchars($currentUser['profile_picture']); ?>" 
                                          alt="Profile Picture" 
                                          class="rounded-circle" 
-                                         style="width: 28px; height: 28px; object-fit: cover;">
+                                         style="width: 28px; height: 28px; object-fit: cover;"
+                                         loading="lazy" decoding="async" referrerpolicy="no-referrer"
+                                         onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=&#39;http://www.w3.org/2000/svg&#39; width=&#39;120&#39; height=&#39;120&#39; viewBox=&#39;0 0 120 120&#39;><rect width=&#39;100%&#39; height=&#39;100%&#39; fill=&#39;%23adb5bd&#39;/><circle cx=&#39;60&#39; cy=&#39;45&#39; r=&#39;25&#39; fill=&#39;%23dee2e6&#39;/><rect x=&#39;20&#39; y=&#39;80&#39; width=&#39;80&#39; height=&#39;25&#39; rx=&#39;12&#39; fill=&#39;%23dee2e6&#39;/></svg>';">
                                 <?php else: ?>
                                     <i class="fas fa-user-circle text-light"></i>
                                 <?php endif; ?>
                             </div>
                             <div class="d-none d-lg-block me-2">
                                 <small>
-                                    <?php echo htmlspecialchars($currentUser['username']); ?>!
+                                    <?php echo htmlspecialchars($currentUser['username']); ?>
                                 </small>
                             </div>
                             <div class="d-flex flex-column flex-sm-row gap-1">
-                                <a href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../bookmarks.php' : 'bookmarks.php'; ?>" class="btn btn-outline-info btn-sm" title="My Bookmarks">
+                                <a href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../bookmarks' : 'bookmarks'; ?>" class="btn btn-outline-info btn-sm" title="My Bookmarks">
                                     <i class="fas fa-bookmark"></i>
                                 </a>
-                                <a href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../profile.php' : 'profile.php'; ?>" class="btn btn-outline-info btn-sm" title="Profile">
+                                <a href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../profile' : 'profile'; ?>" class="btn btn-outline-info btn-sm" title="Profile">
                                     <i class="fas fa-user"></i>
                                 </a>
                                 <?php if ($isAdmin): ?>
-                                <a href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? 'index.php' : 'admin/'; ?>" class="btn btn-outline-warning btn-sm" title="Admin Panel">
+                                <a href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? 'index' : 'admin/'; ?>" class="btn btn-outline-warning btn-sm" title="Admin Panel">
                                     <i class="fas fa-cog"></i>
                                 </a>
                                 <?php endif; ?>
-                                <a href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../logout.php' : 'logout.php'; ?>" class="btn btn-outline-danger btn-sm" title="Logout">
+                                <a href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../logout' : 'logout'; ?>" class="btn btn-outline-danger btn-sm" title="Logout">
                                     <i class="fas fa-sign-out-alt me-1"></i>Logout
                                 </a>
                             </div>

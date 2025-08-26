@@ -8,13 +8,13 @@ $tag = new Tag();
 
 // Check if user is logged in and is admin
 if (!$user->isLoggedIn()) {
-    header('Location: ../index.php');
+    header('Location: ../index');
     exit;
 }
 
 $currentUser = $user->getCurrentUser();
 if (!$currentUser || !$currentUser['is_admin']) {
-    header('Location: ../index.php');
+    header('Location: ../index');
     exit;
 }
 
@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             
             if ($result['success']) {
-                header('Location: tags.php?message=' . urlencode($result['message']));
+                header('Location: tags?message=' . urlencode($result['message']));
                 exit;
             } else {
                 $error = $result['message'];
@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             
             if ($result['success']) {
-                header('Location: tags.php?message=' . urlencode($result['message']));
+                header('Location: tags?message=' . urlencode($result['message']));
                 exit;
             } else {
                 $error = $result['message'];
@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $tag->deleteTag($tagId);
             
             if ($result['success']) {
-                header('Location: tags.php?message=' . urlencode($result['message']));
+                header('Location: tags?message=' . urlencode($result['message']));
                 exit;
             } else {
                 $error = $result['message'];
@@ -138,7 +138,7 @@ include '../includes/head.php';
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">Manage Tags</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
-                    <a href="tags.php?action=add" class="btn btn-sm btn-primary">
+                    <a href="tags?action=add" class="btn btn-sm btn-primary">
                         <i class="fas fa-plus me-1"></i>New Tag
                     </a>
                 </div>
@@ -168,7 +168,7 @@ include '../includes/head.php';
                                 <tr>
                                     <td colspan="7" class="text-center text-muted">
                                         <i class="fas fa-tags fa-2x mb-2"></i>
-                                        <p>No tags found. <a href="tags.php?action=add">Create your first tag</a></p>
+                                        <p>No tags found. <a href="tags?action=add">Create your first tag</a></p>
                                     </td>
                                 </tr>
                                 <?php else: ?>
@@ -196,7 +196,7 @@ include '../includes/head.php';
                                     </td>
                                     <td><?php echo date('Y-m-d', strtotime($tagItem['created_at'])); ?></td>
                                     <td>
-                                        <a href="tags.php?action=edit&id=<?php echo $tagItem['id']; ?>" class="btn btn-sm btn-outline-primary">
+                                        <a href="tags?action=edit&id=<?php echo $tagItem['id']; ?>" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-edit"></i> Edit
                                         </a>
                                         <button class="btn btn-sm btn-outline-danger" onclick="deleteTag(<?php echo $tagItem['id']; ?>, '<?php echo htmlspecialchars($tagItem['name']); ?>')">
@@ -242,13 +242,13 @@ include '../includes/head.php';
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">Add New Tag</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
-                    <a href="tags.php" class="btn btn-sm btn-secondary">
+                    <a href="tags" class="btn btn-sm btn-secondary">
                         <i class="fas fa-arrow-left me-1"></i>Back to Tags
                     </a>
                 </div>
             </div>
 
-            <form method="POST" action="tags.php?action=add">
+            <form method="POST" action="tags?action=add">
                 <input type="hidden" name="action" value="add">
                 <div class="row">
                     <div class="col-md-8">
@@ -319,13 +319,13 @@ include '../includes/head.php';
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">Edit Tag</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
-                    <a href="tags.php" class="btn btn-sm btn-secondary">
+                    <a href="tags" class="btn btn-sm btn-secondary">
                         <i class="fas fa-arrow-left me-1"></i>Back to Tags
                     </a>
                 </div>
             </div>
 
-            <form method="POST" action="tags.php?action=edit">
+            <form method="POST" action="tags?action=edit">
                 <input type="hidden" name="action" value="edit">
                 <input type="hidden" name="tag_id" value="<?php echo $tagId; ?>">
                 <div class="row">
@@ -379,7 +379,7 @@ include '../includes/head.php';
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save me-1"></i>Update Tag
                             </button>
-                            <a href="tags.php" class="btn btn-outline-secondary">
+                            <a href="tags" class="btn btn-outline-secondary">
                                 <i class="fas fa-arrow-left me-1"></i>Cancel
                             </a>
                         </div>
@@ -407,7 +407,7 @@ function deleteTag(tagId, tagName) {
     if (confirm('Are you sure you want to delete the tag "' + tagName + '"? This action cannot be undone.')) {
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = 'tags.php';
+        form.action = 'tags';
         
         const actionInput = document.createElement('input');
         actionInput.type = 'hidden';

@@ -153,7 +153,7 @@ include 'includes/head.php';
             <!-- Breadcrumb -->
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="courses.php">Course Materials</a></li>
+                    <li class="breadcrumb-item"><a href="courses">Course Materials</a></li>
                     <li class="breadcrumb-item active"><?php echo htmlspecialchars($courseData['title']); ?></li>
                 </ol>
             </nav>
@@ -169,19 +169,19 @@ include 'includes/head.php';
                         <strong>Login Required:</strong> Please login to access course materials
                     </div>
                     <br>
-                    <a href="login.php" class="btn btn-primary btn-lg me-3">
+                    <button type="button" class="btn btn-primary btn-lg me-3" data-bs-toggle="modal" data-bs-target="#loginModal">
                         <i class="fas fa-sign-in-alt me-2"></i>Login
-                    </a>
-                    <a href="register.php" class="btn btn-outline-primary btn-lg">
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-lg" data-bs-toggle="modal" data-bs-target="#registerModal">
                         <i class="fas fa-user-plus me-2"></i>Register
-                    </a>
+                    </button>
                 <?php elseif (!$isPremium): ?>
                     <div class="alert alert-warning d-inline-block">
                         <i class="fas fa-crown me-2"></i>
                         <strong>Premium Required:</strong> Upgrade to access course materials
                     </div>
                     <br>
-                    <a href="premium.php" class="btn btn-warning btn-lg">
+                    <a href="#" class="btn btn-warning btn-lg" data-bs-toggle="modal" data-bs-target="#loginModal">
                         <i class="fas fa-crown me-2"></i>Upgrade to Premium
                     </a>
                 <?php endif; ?>
@@ -260,12 +260,12 @@ include 'includes/head.php';
                                                 </div>
                                             </div>
                                             <div class="btn-group btn-group-sm">
-                                                <a href="read_material.php?id=<?php echo $material['id']; ?>" 
+                                                <a href="read_material?id=<?php echo $material['id']; ?>" 
                                                    class="btn btn-success btn-sm"
                                                    title="Read Online">
                                                     <i class="fas fa-eye me-1"></i>Read
                                                 </a>
-                                                <a href="download_material.php?id=<?php echo $material['id']; ?>" 
+                                                <a href="download_material?id=<?php echo $material['id']; ?>" 
                                                    class="btn btn-primary btn-sm download-btn"
                                                    onclick="confirmDownload(event, '<?php echo htmlspecialchars($material['title']); ?>')"
                                                    title="Download">
@@ -306,17 +306,17 @@ include 'includes/head.php';
                                 </p>
                                 
                                 <?php if ($isLoggedIn): ?>
-                                    <a href="premium.php" class="btn btn-warning btn-lg">
+                                    <a href="premium" class="btn btn-warning btn-lg">
                                         <i class="fas fa-crown me-2"></i>Upgrade to Premium
                                     </a>
                                 <?php else: ?>
                                     <div class="d-flex gap-3 justify-content-center">
-                                        <a href="login.php" class="btn btn-primary btn-lg">
+                                        <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#loginModal">
                                             <i class="fas fa-sign-in-alt me-2"></i>Login
-                                        </a>
-                                        <a href="register.php" class="btn btn-outline-primary btn-lg">
+                                        </button>
+                                        <button type="button" class="btn btn-outline-primary btn-lg" data-bs-toggle="modal" data-bs-target="#registerModal">
                                             <i class="fas fa-user-plus me-2"></i>Register
-                                        </a>
+                                        </button>
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -460,3 +460,5 @@ function showDownloadToast(message, type = 'info') {
 </script>
 
 <?php include 'includes/footer.php'; ?>
+<?php include 'includes/modals.php'; ?>
+<?php include 'includes/scripts.php'; ?>

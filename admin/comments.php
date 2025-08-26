@@ -10,13 +10,13 @@ $reply = new Reply();
 
 // Check if user is logged in and is admin
 if (!$user->isLoggedIn()) {
-    header('Location: ../index.php');
+    header('Location: ../index');
     exit;
 }
 
 $currentUser = $user->getCurrentUser();
 if (!$currentUser || !$currentUser['is_admin']) {
-    header('Location: ../index.php');
+    header('Location: ../index');
     exit;
 }
 
@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $comment->updateCommentStatus($commentId, $newStatus);
             
             if ($result['success']) {
-                header('Location: comments.php?message=' . urlencode($result['message']));
+                    header('Location: comments?message=' . urlencode($result['message']));
                 exit;
             } else {
                 $error = $result['message'];
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $comment->deleteComment($commentId);
             
             if ($result['success']) {
-                header('Location: comments.php?message=' . urlencode($result['message']));
+                header('Location: comments?message=' . urlencode($result['message']));
                 exit;
             } else {
                 $error = $result['message'];
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $reply->updateReplyStatus($replyId, $newStatus);
             
             if ($result['success']) {
-                header('Location: comments.php?message=' . urlencode($result['message']));
+                header('Location: comments?message=' . urlencode($result['message']));
                 exit;
             } else {
                 $error = $result['message'];
@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $reply->deleteReply($replyId);
             
             if ($result['success']) {
-                header('Location: comments.php?message=' . urlencode($result['message']));
+                header('Location: comments?message=' . urlencode($result['message']));
                 exit;
             } else {
                 $error = $result['message'];
@@ -124,13 +124,23 @@ include '../includes/head.php';
             <?php endif; ?>
 
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">Manage Comments & Replies</h1>
+                <h1 class="h2">
+                    Manage Comments & Replies
+                    <?php
+                    try {
+                        $pendingCommentCount = $comment->getPendingCommentCount();
+                        if ($pendingCommentCount > 0):
+                        ?>
+                        <span class="badge bg-warning text-dark ms-2"><?php echo $pendingCommentCount; ?> Pending</span>
+                        <?php endif; ?>
+                    <?php } catch (Exception $e) { /* Silently fail */ } ?>
+                </h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <div class="btn-group me-2">
-                        <a href="comments.php" class="btn btn-sm <?php echo $status === 'all' ? 'btn-primary' : 'btn-outline-primary'; ?>">All</a>
-                        <a href="comments.php?status=pending" class="btn btn-sm <?php echo $status === 'pending' ? 'btn-primary' : 'btn-outline-primary'; ?>">Pending</a>
-                        <a href="comments.php?status=approved" class="btn btn-sm <?php echo $status === 'approved' ? 'btn-primary' : 'btn-outline-primary'; ?>">Approved</a>
-                        <a href="comments.php?status=spam" class="btn btn-sm <?php echo $status === 'spam' ? 'btn-primary' : 'btn-outline-primary'; ?>">Spam</a>
+                        <a href="comments" class="btn btn-sm <?php echo $status === 'all' ? 'btn-primary' : 'btn-outline-primary'; ?>">All</a>
+                        <a href="comments?status=pending" class="btn btn-sm <?php echo $status === 'pending' ? 'btn-primary' : 'btn-outline-primary'; ?>">Pending</a>
+                        <a href="comments?status=approved" class="btn btn-sm <?php echo $status === 'approved' ? 'btn-primary' : 'btn-outline-primary'; ?>">Approved</a>
+                        <a href="comments?status=spam" class="btn btn-sm <?php echo $status === 'spam' ? 'btn-primary' : 'btn-outline-primary'; ?>">Spam</a>
                     </div>
                 </div>
             </div>
@@ -140,11 +150,27 @@ include '../includes/head.php';
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="comments-tab" data-bs-toggle="tab" data-bs-target="#comments" type="button" role="tab" aria-controls="comments" aria-selected="true">
                         <i class="fas fa-comments"></i> Comments
+                        <?php
+                        try {
+                            $pendingCommentCount = $comment->getPendingCommentCount();
+                            if ($pendingCommentCount > 0):
+                            ?>
+                            <span class="badge bg-warning text-dark ms-1"><?php echo $pendingCommentCount; ?></span>
+                            <?php endif; ?>
+                        <?php } catch (Exception $e) { /* Silently fail */ } ?>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="replies-tab" data-bs-toggle="tab" data-bs-target="#replies" type="button" role="tab" aria-controls="replies" aria-selected="false">
                         <i class="fas fa-reply"></i> Replies
+                        <?php
+                        try {
+                            $pendingReplyCount = $reply->getPendingReplyCount();
+                            if ($pendingReplyCount > 0):
+                            ?>
+                            <span class="badge bg-warning text-dark ms-1"><?php echo $pendingReplyCount; ?></span>
+                            <?php endif; ?>
+                        <?php } catch (Exception $e) { /* Silently fail */ } ?>
                     </button>
                 </li>
             </ul>
@@ -201,7 +227,7 @@ include '../includes/head.php';
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <a href="../post.php?slug=<?php echo $commentItem['post_slug']; ?>" target="_blank" class="text-decoration-none">
+                                        <a href="../post?slug=<?php echo $commentItem['post_slug']; ?>" target="_blank" class="text-decoration-none">
                                             <?php echo htmlspecialchars($commentItem['post_title']); ?>
                                         </a>
                                     </td>
@@ -328,7 +354,7 @@ include '../includes/head.php';
                                                 </div>
                                             </td>
                                             <td>
-                                                <a href="../post.php?slug=<?php echo $replyItem['post_slug'] ?? '#'; ?>" target="_blank" class="text-decoration-none">
+                                                <a href="../post?slug=<?php echo $replyItem['post_slug'] ?? '#'; ?>" target="_blank" class="text-decoration-none">
                                                     <?php echo htmlspecialchars($replyItem['post_title'] ?? 'Unknown Post'); ?>
                                                 </a>
                                             </td>
@@ -424,7 +450,7 @@ function updateCommentStatus(commentId, status) {
     if (confirm('Are you sure you want to update this comment status?')) {
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = 'comments.php';
+        form.action = 'comments';
         
         const actionInput = document.createElement('input');
         actionInput.type = 'hidden';
@@ -454,7 +480,7 @@ function deleteComment(commentId) {
     if (confirm('Are you sure you want to delete this comment? This action cannot be undone.')) {
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = 'comments.php';
+        form.action = 'comments';
         
         const actionInput = document.createElement('input');
         actionInput.type = 'hidden';
@@ -485,7 +511,7 @@ function updateReplyStatus(replyId, status) {
     if (confirm('Are you sure you want to update this reply status?')) {
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = 'comments.php';
+        form.action = 'comments';
         
         const actionInput = document.createElement('input');
         actionInput.type = 'hidden';
@@ -515,7 +541,7 @@ function deleteReply(replyId) {
     if (confirm('Are you sure you want to delete this reply? This action cannot be undone.')) {
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = 'comments.php';
+        form.action = 'comments';
         
         const actionInput = document.createElement('input');
         actionInput.type = 'hidden';

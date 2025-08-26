@@ -43,6 +43,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (Exception $e) {
             $result = ['success' => false, 'message' => 'Error deleting subscriber: ' . $e->getMessage()];
         }
+    } elseif ($postAction === 'delete_feedback' && isset($_POST['feedback_id'])) {
+        try {
+            $feedbackId = $_POST['feedback_id'];
+            $result = $newsletter->deleteUnsubscribeFeedback($feedbackId);
+        } catch (Exception $e) {
+            $result = ['success' => false, 'message' => 'Error deleting feedback: ' . $e->getMessage()];
+        }
+    } elseif ($postAction === 'clear_all_feedback') {
+        try {
+            $result = $newsletter->clearAllUnsubscribeFeedback();
+        } catch (Exception $e) {
+            $result = ['success' => false, 'message' => 'Error clearing feedback: ' . $e->getMessage()];
+        }
     }
 }
 
@@ -152,6 +165,104 @@ include '../includes/head.php';
     border-color: #0b5ed7;
     color: white;
 }
+
+/* Unsubscribe Feedback Styles */
+.feedback-text {
+    max-width: 200px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.feedback-text:hover {
+    cursor: pointer;
+}
+
+.nav-tabs .nav-link {
+    color: #6c757d;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.5rem 1rem;
+    margin-right: 0.5rem;
+}
+
+.nav-tabs .nav-link.active {
+    color: #495057;
+    background-color: transparent;
+    border-bottom-color: #007bff;
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link:hover {
+    border-bottom-color: #dee2e6;
+    color: #495057;
+}
+
+.dark-mode .nav-tabs .nav-link {
+    color: #b0b0b0;
+    border-bottom-color: transparent;
+}
+
+.dark-mode .nav-tabs .nav-link.active {
+    color: #e0e0e0;
+    border-bottom-color: #007bff;
+}
+
+.dark-mode .nav-tabs .nav-link:hover {
+    border-bottom-color: #404040;
+    color: #e0e0e0;
+}
+
+.badge.bg-warning.text-dark {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+}
+
+.dark-mode .badge.bg-warning.text-dark {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+}
+
+/* Badge transition effects */
+#unsubscribe-badge {
+    transition: opacity 0.3s ease-in-out;
+}
+
+#unsubscribe-badge.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Feedback Details Modal Styling */
+.feedback-details {
+    font-size: 14px;
+}
+
+.feedback-details .row {
+    margin-bottom: 1rem;
+}
+
+.feedback-details strong {
+    color: #495057;
+    font-weight: 600;
+}
+
+.feedback-details .bg-light {
+    background-color: #f8f9fa !important;
+    border: 1px solid #e9ecef;
+    font-family: 'Courier New', monospace;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.dark-mode .feedback-details strong {
+    color: #e0e0e0;
+}
+
+.dark-mode .feedback-details .bg-light {
+    background-color: #2d2d2d !important;
+    border-color: #404040;
+    color: #e0e0e0;
+}
 </style>
 <?php include '../includes/header.php'; ?>
 
@@ -170,17 +281,67 @@ include '../includes/head.php';
             <?php endif; ?>
 
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">Newsletter Management</h1>
+                <h1 class="h2">
+                    Newsletter Management
+                    <?php
+                    try {
+                        $pendingSubscriptionCount = $newsletter->getPendingSubscriptionCount();
+                        $totalSubscribers = $newsletter->getTotalSubscriberCount();
+                        if ($pendingSubscriptionCount > 0):
+                        ?>
+                        <span class="badge bg-warning text-dark ms-2"><?php echo $pendingSubscriptionCount; ?> Pending</span>
+                        <?php endif; ?>
+                        <span class="badge bg-info ms-2"><?php echo $totalSubscribers; ?> Total</span>
+                    <?php } catch (Exception $e) { /* Silently fail */ } ?>
+                </h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#sendNewsletterModal">
                         <i class="fas fa-paper-plane me-1"></i>Send Newsletter
                     </button>
-                    <a href="send_newsletter.php" class="btn btn-sm btn-outline-primary ms-2">
+                    <a href="send_newsletter" class="btn btn-sm btn-outline-primary ms-2">
                         <i class="fas fa-edit me-1"></i>Compose Newsletter
                     </a>
                 </div>
             </div>
 
+            <!-- Navigation Tabs -->
+            <ul class="nav nav-tabs mb-4" id="newsletterTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="subscribers-tab" data-bs-toggle="tab" data-bs-target="#subscribers" type="button" role="tab" aria-controls="subscribers" aria-selected="true">
+                        <i class="fas fa-users me-1"></i>Subscribers
+                        <?php
+                        try {
+                            $pendingSubscriptionCount = $newsletter->getPendingSubscriptionCount();
+                            if ($pendingSubscriptionCount > 0):
+                            ?>
+                            <span class="badge bg-warning text-dark ms-1"><?php echo $pendingSubscriptionCount; ?></span>
+                            <?php endif; ?>
+                        <?php } catch (Exception $e) { /* Silently fail */ } ?>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="unsubscribe-feedback-tab" data-bs-toggle="tab" data-bs-target="#unsubscribe-feedback" type="button" role="tab" aria-controls="unsubscribe-feedback" aria-selected="false">
+                        <i class="fas fa-comment-dots me-1"></i>Unsubscribe Feedback
+                        <?php
+                        try {
+                            $unviewedCount = $newsletter->getUnviewedUnsubscribeFeedbackCount();
+                            if ($unviewedCount > 0):
+                            ?>
+                            <span class="badge bg-danger ms-1"><?php echo $unviewedCount; ?></span>
+                            <?php endif; ?>
+                        <?php } catch (Exception $e) {
+                            // Silently fail for the badge count
+                        } catch (Error $e) {
+                            // Silently fail for the badge count
+                        } ?>
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="newsletterTabsContent">
+                <!-- Subscribers Tab -->
+                <div class="tab-pane fade show active" id="subscribers" role="tabpanel" aria-labelledby="subscribers-tab">
             <div class="row">
                 <div class="col-md-8">
                     <!-- Subscribers List -->
@@ -281,6 +442,129 @@ include '../includes/head.php';
                             </div>
                         </div>
                     </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Unsubscribe Feedback Tab -->
+            <div class="tab-pane fade" id="unsubscribe-feedback" role="tabpanel" aria-labelledby="unsubscribe-feedback-tab">
+                <?php
+                // Mark all current feedback as viewed when admin opens this tab
+                try {
+                    $newsletter->markAllFeedbackAsViewed();
+                } catch (Exception $e) {
+                    // Silently fail
+                }
+                ?>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                                                            <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-comment-dots me-2"></i>Unsubscribe Feedback
+                                    </h5>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportUnsubscribeFeedback()">
+                                            <i class="fas fa-download me-1"></i>Export
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearAllFeedback()">
+                                            <i class="fas fa-trash me-1"></i>Clear All
+                                        </button>
+                                    </div>
+                                </div>
+                                                            <div class="card-body">
+                                    <?php
+                                    try {
+                                        $unsubscribeFeedback = $newsletter->getUnsubscribeFeedback();
+                                    } catch (Exception $e) {
+                                        echo '<div class="alert alert-danger">Error retrieving unsubscribe feedback: ' . htmlspecialchars($e->getMessage()) . '</div>';
+                                        $unsubscribeFeedback = [];
+                                    } catch (Error $e) {
+                                        echo '<div class="alert alert-danger">Fatal error retrieving unsubscribe feedback: ' . htmlspecialchars($e->getMessage()) . '</div>';
+                                        $unsubscribeFeedback = [];
+                                    }
+                                    ?>
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Email</th>
+                                                <th>Reason</th>
+                                                <th>Feedback</th>
+                                                <th>Unsubscribed Date</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php if (empty($unsubscribeFeedback)): ?>
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted">
+                                                    <i class="fas fa-comment-slash fa-2x mb-2"></i>
+                                                    <p>No unsubscribe feedback found.</p>
+                                                </td>
+                                            </tr>
+                                            <?php else: ?>
+                                            <?php foreach ($unsubscribeFeedback as $feedback): ?>
+                                            <tr>
+                                                <td>
+                                                    <strong><?php echo htmlspecialchars($feedback['email'] ?? ''); ?></strong>
+                                                    <?php if (!empty($feedback['username'])): ?>
+                                                        <br><small class="text-muted">@<?php echo htmlspecialchars($feedback['username']); ?></small>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <?php
+                                                    $reasonLabels = [
+                                                        'too_frequent' => 'Too Frequent',
+                                                        'not_relevant' => 'Not Relevant',
+                                                        'quality' => 'Poor Quality',
+                                                        'spam' => 'Marked as Spam',
+                                                        'other' => 'Other'
+                                                    ];
+                                                    $unsubscribeReason = $feedback['unsubscribe_reason'] ?? $feedback['reason'] ?? 'unknown';
+                                                    $reasonLabel = $reasonLabels[$unsubscribeReason] ?? 'Unknown';
+                                                    ?>
+                                                    <span class="badge bg-warning text-dark"><?php echo $reasonLabel; ?></span>
+                                                </td>
+                                                <td>
+                                                    <?php 
+                                                    $feedbackText = $feedback['unsubscribe_feedback'] ?? $feedback['feedback'] ?? '';
+                                                    if (!empty($feedbackText)): 
+                                                    ?>
+                                                        <div class="feedback-text" style="max-width: 200px;">
+                                                            <?php echo htmlspecialchars($feedbackText); ?>
+                                                        </div>
+                                                    <?php else: ?>
+                                                        <span class="text-muted">No additional feedback</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <?php 
+                                                    $feedbackDate = $feedback['unsubscribe_requested_at'] ?? $feedback['created_at'] ?? 'now';
+                                                    echo date('M j, Y', strtotime($feedbackDate)); 
+                                                    ?>
+                                                    <br><small class="text-muted"><?php echo date('g:i A', strtotime($feedbackDate)); ?></small>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group">
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="viewFeedbackDetails(<?php echo $feedback['id'] ?? 0; ?>)">
+                                                            <i class="fas fa-eye"></i> View
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteFeedback(<?php echo $feedback['id'] ?? 0; ?>)">
+                                                            <i class="fas fa-trash"></i> Delete
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
@@ -308,7 +592,7 @@ include '../includes/head.php';
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Recipients</label>
-                        <p class="text-muted">This newsletter will be sent to <?php echo $newsletter->getSubscriberCount(); ?> active subscribers.</p>
+                        <p class="text-muted">This newsletter will be sent to <?php echo $newsletter->getUnsubscribeFeedbackCount(); ?> active subscribers.</p>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -322,13 +606,36 @@ include '../includes/head.php';
     </div>
 </div>
 
+<!-- View Feedback Details Modal -->
+<div class="modal fade" id="viewFeedbackModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-comment-dots me-2"></i>Feedback Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="feedbackModalBody">
+                <!-- Content will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" id="deleteFeedbackBtn" onclick="deleteFeedbackFromModal()">
+                    <i class="fas fa-trash me-1"></i>Delete Feedback
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 // Delete subscriber function
 function deleteSubscriber(subscriberId, email) {
     if (confirm('Are you sure you want to delete the subscriber "' + email + '"? This action cannot be undone.')) {
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = 'newsletter.php';
+        form.action = 'newsletter';
         
         const actionInput = document.createElement('input');
         actionInput.type = 'hidden';
@@ -358,6 +665,162 @@ function importSubscribers() {
     // This would typically make an AJAX call to import subscribers
     alert('Import functionality would be implemented here.');
 }
+
+// Unsubscribe Feedback Functions
+function viewFeedbackDetails(feedbackId) {
+    // Get feedback data and populate modal
+    fetch(`get_feedback_details?id=${feedbackId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const feedback = data.feedback;
+                const modalBody = document.getElementById('feedbackModalBody');
+                
+                // Create feedback details HTML
+                const feedbackHtml = `
+                    <div class="feedback-details">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>Email:</strong> ${feedback.email}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Username:</strong> ${feedback.username || 'Guest User'}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>Reason:</strong> 
+                                <span class="badge bg-warning text-dark">${getReasonLabel(feedback.unsubscribe_reason)}</span>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Date:</strong> ${formatDate(feedback.unsubscribe_requested_at)}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <strong>Additional Feedback:</strong>
+                                <div class="mt-2 p-3 bg-light rounded">
+                                    ${feedback.unsubscribe_feedback || 'No additional feedback provided'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                modalBody.innerHTML = feedbackHtml;
+                
+                // Store feedback ID for delete function
+                document.getElementById('deleteFeedbackBtn').setAttribute('data-feedback-id', feedbackId);
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('viewFeedbackModal'));
+                modal.show();
+            } else {
+                alert('Error loading feedback details: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading feedback details. Please try again.');
+        });
+}
+
+function deleteFeedback(feedbackId) {
+    if (confirm('Are you sure you want to delete this feedback? This action cannot be undone.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'newsletter';
+        
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = 'delete_feedback';
+        
+        const feedbackIdInput = document.createElement('input');
+        feedbackIdInput.type = 'hidden';
+        feedbackIdInput.name = 'feedback_id';
+        feedbackIdInput.value = feedbackId;
+        
+        form.appendChild(actionInput);
+        form.appendChild(feedbackIdInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function deleteFeedbackFromModal() {
+    const feedbackId = document.getElementById('deleteFeedbackBtn').getAttribute('data-feedback-id');
+    if (feedbackId) {
+        // Close modal first
+        const modal = bootstrap.Modal.getInstance(document.getElementById('viewFeedbackModal'));
+        modal.hide();
+        
+        // Then delete
+        deleteFeedback(feedbackId);
+    }
+}
+
+// Helper functions
+function getReasonLabel(reason) {
+    const reasonLabels = {
+        'too_frequent': 'Too Frequent',
+        'not_relevant': 'Not Relevant',
+        'quality': 'Poor Quality',
+        'spam': 'Marked as Spam',
+        'other': 'Other'
+    };
+    return reasonLabels[reason] || 'Unknown';
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function exportUnsubscribeFeedback() {
+    alert('Export unsubscribe feedback functionality will be implemented here.');
+}
+
+function clearAllFeedback() {
+    if (confirm('Are you sure you want to clear all unsubscribe feedback? This action cannot be undone.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'newsletter';
+        
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = 'clear_all_feedback';
+        
+        form.appendChild(actionInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+
+
+
+
+// Tab functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap tabs
+    const triggerTabList = [].slice.call(document.querySelectorAll('#newsletterTabs button'))
+    triggerTabList.forEach(function (triggerEl) {
+        const tabTrigger = new bootstrap.Tab(triggerEl)
+        
+        triggerEl.addEventListener('click', function (event) {
+            event.preventDefault()
+            tabTrigger.show()
+        })
+    })
+});
 </script>
 
 <?php include '../includes/footer.php'; ?>

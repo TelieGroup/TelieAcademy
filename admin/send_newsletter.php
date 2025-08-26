@@ -8,13 +8,13 @@ $user = new User();
 
 // Check if user is logged in and is admin
 if (!$user->isLoggedIn()) {
-    header('Location: ../index.php');
+    header('Location: ../index');
     exit;
 }
 
 $currentUser = $user->getCurrentUser();
 if (!$currentUser || !$currentUser['is_admin']) {
-    header('Location: ../index.php');
+    header('Location: ../index');
     exit;
 }
 
@@ -261,7 +261,7 @@ include '../includes/head.php';
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1><i class="fas fa-envelope-open-text me-2"></i>Send Newsletter</h1>
                 <div>
-                    <a href="newsletter.php" class="btn btn-outline-secondary">
+                    <a href="newsletter" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left me-2"></i>Back to Newsletter Management
                     </a>
                 </div>

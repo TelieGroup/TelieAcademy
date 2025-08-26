@@ -176,6 +176,10 @@ class OAuth {
     
     private function updateLinkedInUser($userId, $profile) {
         try {
+            $current = $this->getCurrentProfilePicture($userId);
+            $shouldUpdatePicture = empty($current) || $this->isExternalProfilePicture($current);
+
+            if ($shouldUpdatePicture) {
             $query = "UPDATE users SET 
                      first_name = :first_name, 
                      last_name = :last_name, 
@@ -183,12 +187,23 @@ class OAuth {
                      last_login = NOW(),
                      login_count = login_count + 1
                      WHERE id = :user_id";
-            
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':first_name', $profile['firstName']);
             $stmt->bindParam(':last_name', $profile['lastName']);
             $stmt->bindParam(':profile_picture', $profile['profilePicture']);
             $stmt->bindParam(':user_id', $userId);
+            } else {
+                $query = "UPDATE users SET 
+                         first_name = :first_name, 
+                         last_name = :last_name, 
+                         last_login = NOW(),
+                         login_count = login_count + 1
+                         WHERE id = :user_id";
+                $stmt = $this->conn->prepare($query);
+                $stmt->bindParam(':first_name', $profile['firstName']);
+                $stmt->bindParam(':last_name', $profile['lastName']);
+                $stmt->bindParam(':user_id', $userId);
+            }
             
             if ($stmt->execute()) {
                 return $this->loginLinkedInUser($userId);
@@ -202,6 +217,10 @@ class OAuth {
     
     private function linkLinkedInToExistingUser($userId, $profile) {
         try {
+            $current = $this->getCurrentProfilePicture($userId);
+            $shouldUpdatePicture = empty($current) || $this->isExternalProfilePicture($current);
+
+            if ($shouldUpdatePicture) {
             $query = "UPDATE users SET 
                      oauth_provider = 'linkedin', 
                      oauth_id = :oauth_id,
@@ -211,13 +230,27 @@ class OAuth {
                      last_login = NOW(),
                      login_count = login_count + 1
                      WHERE id = :user_id";
-            
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':oauth_id', $profile['id']);
             $stmt->bindParam(':first_name', $profile['firstName']);
             $stmt->bindParam(':last_name', $profile['lastName']);
             $stmt->bindParam(':profile_picture', $profile['profilePicture']);
             $stmt->bindParam(':user_id', $userId);
+            } else {
+                $query = "UPDATE users SET 
+                         oauth_provider = 'linkedin', 
+                         oauth_id = :oauth_id,
+                         first_name = :first_name, 
+                         last_name = :last_name, 
+                         last_login = NOW(),
+                         login_count = login_count + 1
+                         WHERE id = :user_id";
+                $stmt = $this->conn->prepare($query);
+                $stmt->bindParam(':oauth_id', $profile['id']);
+                $stmt->bindParam(':first_name', $profile['firstName']);
+                $stmt->bindParam(':last_name', $profile['lastName']);
+                $stmt->bindParam(':user_id', $userId);
+            }
             
             if ($stmt->execute()) {
                 return $this->loginLinkedInUser($userId);
@@ -436,13 +469,23 @@ class OAuth {
             $firstName = $profile['given_name'] ?? '';
             $lastName = $profile['family_name'] ?? '';
             $picture = $profile['picture'] ?? '';
+            $current = $this->getCurrentProfilePicture($userId);
+            $shouldUpdatePicture = empty($current) || $this->isExternalProfilePicture($current);
             
+            if ($shouldUpdatePicture) {
             $query = "UPDATE users SET first_name = :first_name, last_name = :last_name, profile_picture = :profile_picture, last_login = NOW() WHERE id = :user_id";
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':first_name', $firstName);
             $stmt->bindParam(':last_name', $lastName);
             $stmt->bindParam(':profile_picture', $picture);
             $stmt->bindParam(':user_id', $userId);
+            } else {
+                $query = "UPDATE users SET first_name = :first_name, last_name = :last_name, last_login = NOW() WHERE id = :user_id";
+                $stmt = $this->conn->prepare($query);
+                $stmt->bindParam(':first_name', $firstName);
+                $stmt->bindParam(':last_name', $lastName);
+                $stmt->bindParam(':user_id', $userId);
+            }
             $stmt->execute();
             
             // Login the user
@@ -457,12 +500,21 @@ class OAuth {
         try {
             $googleId = $profile['id'];
             $picture = $profile['picture'] ?? '';
+            $current = $this->getCurrentProfilePicture($userId);
+            $shouldUpdatePicture = empty($current) || $this->isExternalProfilePicture($current);
             
+            if ($shouldUpdatePicture) {
             $query = "UPDATE users SET oauth_provider = 'google', oauth_id = :oauth_id, profile_picture = :profile_picture, last_login = NOW() WHERE id = :user_id";
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':oauth_id', $googleId);
             $stmt->bindParam(':profile_picture', $picture);
             $stmt->bindParam(':user_id', $userId);
+            } else {
+                $query = "UPDATE users SET oauth_provider = 'google', oauth_id = :oauth_id, last_login = NOW() WHERE id = :user_id";
+                $stmt = $this->conn->prepare($query);
+                $stmt->bindParam(':oauth_id', $googleId);
+                $stmt->bindParam(':user_id', $userId);
+            }
             $stmt->execute();
             
             // Login the user
@@ -731,13 +783,23 @@ class OAuth {
             $nameParts = explode(' ', $name, 2);
             $firstName = $nameParts[0] ?? '';
             $lastName = $nameParts[1] ?? '';
+            $current = $this->getCurrentProfilePicture($userId);
+            $shouldUpdatePicture = empty($current) || $this->isExternalProfilePicture($current);
             
+            if ($shouldUpdatePicture) {
             $query = "UPDATE users SET first_name = :first_name, last_name = :last_name, profile_picture = :profile_picture, last_login = NOW() WHERE id = :user_id";
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':first_name', $firstName);
             $stmt->bindParam(':last_name', $lastName);
             $stmt->bindParam(':profile_picture', $picture);
             $stmt->bindParam(':user_id', $userId);
+            } else {
+                $query = "UPDATE users SET first_name = :first_name, last_name = :last_name, last_login = NOW() WHERE id = :user_id";
+                $stmt = $this->conn->prepare($query);
+                $stmt->bindParam(':first_name', $firstName);
+                $stmt->bindParam(':last_name', $lastName);
+                $stmt->bindParam(':user_id', $userId);
+            }
             $stmt->execute();
             
             // Login the user
@@ -752,12 +814,21 @@ class OAuth {
         try {
             $githubId = $profile['id'];
             $picture = $profile['avatar_url'] ?? '';
+            $current = $this->getCurrentProfilePicture($userId);
+            $shouldUpdatePicture = empty($current) || $this->isExternalProfilePicture($current);
             
+            if ($shouldUpdatePicture) {
             $query = "UPDATE users SET oauth_provider = 'github', oauth_id = :oauth_id, profile_picture = :profile_picture, last_login = NOW() WHERE id = :user_id";
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':oauth_id', $githubId);
             $stmt->bindParam(':profile_picture', $picture);
             $stmt->bindParam(':user_id', $userId);
+            } else {
+                $query = "UPDATE users SET oauth_provider = 'github', oauth_id = :oauth_id, last_login = NOW() WHERE id = :user_id";
+                $stmt = $this->conn->prepare($query);
+                $stmt->bindParam(':oauth_id', $githubId);
+                $stmt->bindParam(':user_id', $userId);
+            }
             $stmt->execute();
             
             // Login the user
@@ -765,6 +836,38 @@ class OAuth {
             
         } catch (Exception $e) {
             return ['success' => false, 'message' => 'Failed to link GitHub account: ' . $e->getMessage()];
+        }
+    }
+
+    // Helper: check if a stored profile picture is external (OAuth) versus local upload
+    private function isExternalProfilePicture($profilePicturePath) {
+        if (!$profilePicturePath) return false;
+        if (filter_var($profilePicturePath, FILTER_VALIDATE_URL)) return true;
+        $oauthDomains = [
+            'googleusercontent.com',
+            'githubusercontent.com',
+            'licdn.com',
+            'linkedin.com'
+        ];
+        foreach ($oauthDomains as $domain) {
+            if (strpos($profilePicturePath, $domain) !== false) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Helper: get current profile picture for a user
+    private function getCurrentProfilePicture($userId) {
+        try {
+            $query = "SELECT profile_picture FROM users WHERE id = :user_id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':user_id', $userId);
+            $stmt->execute();
+            $row = $stmt->fetch();
+            return $row ? ($row['profile_picture'] ?? '') : '';
+        } catch (Exception $e) {
+            return '';
         }
     }
     

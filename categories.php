@@ -65,11 +65,11 @@ include 'includes/head.php';
             <div class="row">
                 <div class="col-12">
                     <div class="d-flex flex-wrap justify-content-center gap-2">
-                        <a href="categories.php" class="btn <?php echo !$selectedCategory ? 'btn-primary' : 'btn-outline-primary'; ?>">
+                                                 <a href="categories" class="btn <?php echo !$selectedCategory ? 'btn-primary' : 'btn-outline-primary'; ?>">
                             All Categories
                         </a>
                         <?php foreach ($categories as $cat): ?>
-                        <a href="categories.php?category=<?php echo $cat['slug']; ?>" 
+                                                 <a href="categories?category=<?php echo $cat['slug']; ?>" 
                            class="btn <?php echo $selectedCategory === $cat['slug'] ? 'btn-primary' : 'btn-outline-primary'; ?>">
                             <?php echo htmlspecialchars($cat['name']); ?>
                             <span class="badge bg-light text-dark ms-1"><?php echo $cat['post_count']; ?></span>
@@ -117,7 +117,7 @@ include 'includes/head.php';
                     <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
                     <h3 class="text-muted">No tutorials found</h3>
                     <p class="text-muted">No tutorials available in this category yet.</p>
-                    <a href="categories.php" class="btn btn-primary">Browse All Categories</a>
+                    <a href="categories" class="btn btn-primary">Browse All Categories</a>
                 </div>
                 <?php else: ?>
                 <?php foreach ($posts as $post): ?>
@@ -134,7 +134,7 @@ include 'includes/head.php';
                             </div>
                             
                             <h5 class="card-title">
-                                <a href="post.php?slug=<?php echo $post['slug']; ?>" class="text-decoration-none">
+                                <a href="post?slug=<?php echo $post['slug']; ?>" class="text-decoration-none">
                                     <?php echo htmlspecialchars($post['title']); ?>
                                 </a>
                             </h5>
@@ -164,7 +164,7 @@ include 'includes/head.php';
                                         $tagColor = $tagData ? $tagData['color'] : '#6c757d';
                                         $tagSlug = $tagData ? $tagData['slug'] : strtolower(str_replace(' ', '-', $tagName));
                                 ?>
-                                <a href="tags.php?tag=<?php echo urlencode($tagSlug); ?>" class="badge text-decoration-none me-1" style="background-color: <?php echo htmlspecialchars($tagColor); ?>; color: white;">
+                                <a href="tags?tag=<?php echo urlencode($tagSlug); ?>" class="badge text-decoration-none me-1" style="background-color: <?php echo htmlspecialchars($tagColor); ?>; color: white;">
                                     <?php echo htmlspecialchars($tagName); ?>
                                 </a>
                                 <?php 

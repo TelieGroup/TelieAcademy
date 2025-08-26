@@ -5,12 +5,15 @@ require_once 'includes/ContactMessage.php';
 
 $user = new User();
 if (!$user->isLoggedIn()) {
-    header('Location: index.php');
+    header('Location: index');
     exit();
 }
 
 $currentUser = $user->getCurrentUser();
 $contactMessage = new ContactMessage();
+
+// Clear unread replies badge: mark user's messages as viewed upon opening this page
+$contactMessage->markAllAsViewedByUser($currentUser['id']);
 
 // Get user's messages
 $userMessages = $contactMessage->getMessagesByUser($currentUser['id']);
@@ -232,7 +235,7 @@ include 'includes/head.php';
 <div class="messages-container">
     <div class="container">
         <!-- Back Link -->
-        <a href="contact-us.php" class="back-link">
+                    <a href="contact-us" class="back-link">
             <i class="fas fa-arrow-left"></i>
             Back to Contact Form
         </a>
@@ -249,7 +252,7 @@ include 'includes/head.php';
                 <i class="fas fa-inbox"></i>
                 <h3>No messages yet</h3>
                 <p>You haven't sent any contact messages yet.</p>
-                <a href="contact-us.php" class="btn btn-primary">
+                <a href="contact-us" class="btn btn-primary">
                     <i class="fas fa-paper-plane me-2"></i>Send Your First Message
                 </a>
             </div>

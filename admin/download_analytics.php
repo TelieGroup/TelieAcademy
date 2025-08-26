@@ -185,11 +185,23 @@ include '../includes/head.php';
                     <h1 class="h3 mb-0">
                         <i class="fas fa-chart-line text-primary"></i>
                         Download Analytics
+                        <?php
+                        try {
+                            $downloadsToday = $downloadStats['downloads_today'] ?? 0;
+                            $downloadsWeek = $downloadStats['downloads_week'] ?? 0;
+                            if ($downloadsToday > 0):
+                            ?>
+                            <span class="badge bg-success ms-2"><?php echo $downloadsToday; ?> Today</span>
+                            <?php endif; ?>
+                            <?php if ($downloadsWeek > 0): ?>
+                            <span class="badge bg-warning text-dark ms-2"><?php echo $downloadsWeek; ?> This Week</span>
+                            <?php endif; ?>
+                        <?php } catch (Exception $e) { /* Silently fail */ } ?>
                     </h1>
                     <p class="text-muted mb-0">Track and analyze course material downloads</p>
                 </div>
                 <div>
-                    <a href="index.php" class="btn btn-outline-secondary">
+                    <a href="index" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
                     </a>
                 </div>

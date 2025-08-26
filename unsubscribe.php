@@ -1,22 +1,30 @@
 <?php
 require_once 'config/database.php';
 require_once 'includes/Newsletter.php';
+require_once 'includes/User.php';
 
 $pageTitle = "Unsubscribe - TelieAcademy";
 $message = '';
 $messageType = '';
 $showForm = true;
 
-// Get email and token from URL
+// Check if user is logged in
+$user = new User();
+$isLoggedIn = $user->isLoggedIn();
+$currentUser = null;
+$userEmail = '';
+
+if ($isLoggedIn) {
+    $currentUser = $user->getCurrentUser();
+    $userEmail = $currentUser['email'] ?? '';
+}
+
+// Get email and token from URL (optional - for direct unsubscribe links)
 $email = $_GET['email'] ?? '';
 $token = $_GET['token'] ?? '';
 
-if (empty($email) || empty($token)) {
-    $message = 'Invalid unsubscribe link. Please check your email for the correct link.';
-    $messageType = 'danger';
-    $showForm = false;
-} else {
-    // Verify token and unsubscribe
+// If both email and token are provided, this is a direct unsubscribe link
+if (!empty($email) && !empty($token)) {
     try {
 $newsletter = new Newsletter();
 
@@ -36,37 +44,77 @@ $newsletter = new Newsletter();
             $messageType = 'info';
             $showForm = false;
         } else {
-            // Process unsubscribe
-            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                $action = $_POST['action'] ?? '';
-                
-                if ($action === 'unsubscribe') {
-                    $reason = $_POST['reason'] ?? '';
-                    $feedback = $_POST['feedback'] ?? '';
-                    
-                    // Unsubscribe the user
-                    $result = $newsletter->unsubscribe($email);
-        
-        if ($result['success']) {
-                        $message = 'You have been successfully unsubscribed from our newsletter. We\'re sorry to see you go!';
-            $messageType = 'success';
-                        $showForm = false;
-                        
-                        // Log the unsubscribe reason and feedback
-                        if (!empty($reason) || !empty($feedback)) {
-                            $newsletter->logUnsubscribeFeedback($email, $reason, $feedback);
-                        }
-        } else {
-                        $message = 'Failed to unsubscribe. Please try again or contact support.';
-            $messageType = 'danger';
-        }
-                }
+            // Process direct unsubscribe
+            $result = $newsletter->unsubscribe($email);
+            
+            if ($result['success']) {
+                $message = 'You have been successfully unsubscribed from our newsletter.';
+                $messageType = 'success';
+                $showForm = false;
+            } else {
+                $message = 'Failed to unsubscribe. Please try again or contact support.';
+                $messageType = 'danger';
             }
         }
     } catch (Exception $e) {
         $message = 'An error occurred while processing your request. Please try again.';
         $messageType = 'danger';
         $showForm = false;
+    }
+} else {
+    // Show the unsubscribe form for users to enter their email
+    $showForm = true;
+    
+    // Handle form submission
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $action = $_POST['action'] ?? '';
+                
+                if ($action === 'unsubscribe') {
+            $email = $_POST['email'] ?? '';
+                    $reason = $_POST['reason'] ?? '';
+                    $feedback = $_POST['feedback'] ?? '';
+            
+            // If user is logged in, use their email if not provided in form
+            if (empty($email) && $isLoggedIn && !empty($userEmail)) {
+                $email = $userEmail;
+            }
+            
+            if (empty($email)) {
+                $message = 'Please enter your email address.';
+                $messageType = 'danger';
+            } else {
+                try {
+                    $newsletter = new Newsletter();
+                    
+                    // Check if email exists in subscribers
+                    $subscriber = $newsletter->getSubscriberByEmail($email);
+                    
+                    if (!$subscriber) {
+                        $message = 'Email address not found in our subscriber list.';
+                        $messageType = 'warning';
+                    } elseif (!$subscriber['is_active']) {
+                        $message = 'You are already unsubscribed from our newsletter.';
+                        $messageType = 'info';
+                    } else {
+                    // Generate confirmation token and send email
+                    $confirmationToken = bin2hex(random_bytes(32));
+                    $result = $newsletter->sendUnsubscribeConfirmation($email, $confirmationToken, $reason, $feedback);
+                    
+                    if ($result['success']) {
+                        $message = 'We\'ve sent a confirmation email to your inbox. Please check your email and click the unsubscribe confirmation link to complete the process.';
+                        $messageType = 'info';
+                        $showForm = false;
+                    } else {
+                        $message = 'Failed to send confirmation email. Please try again or contact support.';
+                        $messageType = 'danger';
+                    }
+                    }
+                } catch (Exception $e) {
+                    $message = 'An error occurred while processing your request. Please try again.';
+                    $messageType = 'danger';
+                }
+            }
+        }
     }
 }
 
@@ -229,6 +277,27 @@ include 'includes/head.php';
 .dark-mode .form-label {
     color: #e0e0e0;
 }
+
+.alert-info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+}
+
+.alert-info .alert-link {
+    color: #0a3c44;
+    text-decoration: underline;
+}
+
+.dark-mode .alert-info {
+    background-color: #1e3a5f;
+    border-color: #2196f3;
+    color: #64b5f6;
+}
+
+.dark-mode .alert-info .alert-link {
+    color: #90caf9;
+}
 </style>
 
     <?php include 'includes/header.php'; ?>
@@ -238,10 +307,26 @@ include 'includes/head.php';
         <?php if ($showForm): ?>
             <!-- Unsubscribe Form -->
             <div class="unsubscribe-form">
+                <?php if ($isLoggedIn && !empty($userEmail)): ?>
+                    <div class="alert alert-info mb-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Logged in as:</strong> <?php echo htmlspecialchars($currentUser['username'] ?? $userEmail); ?>
+                        <br>
+                        <small class="text-muted">
+                            You can also manage your subscription preferences in your 
+                            <a href="subscription-settings" class="alert-link">account settings</a>.
+                        </small>
+                    </div>
+                <?php endif; ?>
+                
                 <div class="unsubscribe-header">
                     <i class="fas fa-envelope-open"></i>
                     <h1>Unsubscribe from Newsletter</h1>
-                    <p>We're sorry to see you go. Please let us know why you're leaving.</p>
+                    <?php if ($isLoggedIn && !empty($userEmail)): ?>
+                        <p>We're sorry to see you go, <strong><?php echo htmlspecialchars($currentUser['username'] ?? $userEmail); ?></strong>. Please provide feedback below.</p>
+                    <?php else: ?>
+                        <p>Enter your email address and provide feedback to unsubscribe</p>
+                    <?php endif; ?>
                     </div>
 
                         <?php if ($message): ?>
@@ -253,6 +338,23 @@ include 'includes/head.php';
 
                 <form method="POST" action="">
                     <input type="hidden" name="action" value="unsubscribe">
+                    
+                    <!-- Email Input Section -->
+                    <div class="mb-4">
+                        <label for="email" class="form-label">Email Address *</label>
+                        <?php if ($isLoggedIn && !empty($userEmail)): ?>
+                            <input type="email" class="form-control form-control-lg" id="email" name="email" 
+                                   value="<?php echo htmlspecialchars($userEmail); ?>" readonly>
+                            <div class="form-text">
+                                <i class="fas fa-user-check text-success me-1"></i>
+                                Using your logged-in account email: <strong><?php echo htmlspecialchars($userEmail); ?></strong>
+                            </div>
+                        <?php else: ?>
+                            <input type="email" class="form-control form-control-lg" id="email" name="email" 
+                                   placeholder="Enter your email address" required>
+                            <div class="form-text">Enter the email address you used to subscribe to our newsletter.</div>
+                        <?php endif; ?>
+                    </div>
                     
                     <!-- Feedback Section -->
                     <div class="feedback-section">
@@ -307,9 +409,9 @@ include 'includes/head.php';
                     <!-- Unsubscribe Actions -->
                     <div class="unsubscribe-actions">
                         <button type="submit" class="btn btn-unsubscribe btn-lg">
-                            <i class="fas fa-times me-2"></i>Unsubscribe
+                            <i class="fas fa-paper-plane me-2"></i>Send Confirmation Email
                         </button>
-                        <a href="index.php" class="btn btn-cancel btn-lg">
+                        <a href="index" class="btn btn-cancel btn-lg">
                                         <i class="fas fa-arrow-left me-2"></i>Cancel
                                     </a>
                                 </div>
@@ -324,14 +426,14 @@ include 'includes/head.php';
                         <h2>Unsubscribed Successfully</h2>
                         <p><?php echo htmlspecialchars($message); ?></p>
                         <p>You can always resubscribe in the future if you change your mind.</p>
-                        <a href="index.php" class="btn btn-primary btn-lg">
+                        <a href="index" class="btn btn-primary btn-lg">
                             <i class="fas fa-home me-2"></i>Return to Home
                         </a>
                         <?php else: ?>
                         <i class="fas fa-exclamation-triangle"></i>
                         <h2><?php echo $messageType === 'danger' ? 'Error' : 'Notice'; ?></h2>
                         <p><?php echo htmlspecialchars($message); ?></p>
-                        <a href="index.php" class="btn btn-primary btn-lg">
+                        <a href="index" class="btn btn-primary btn-lg">
                             <i class="fas fa-home me-2"></i>Return to Home
                         </a>
                     <?php endif; ?>
@@ -342,12 +444,6 @@ include 'includes/head.php';
                 </div>
 
 <script>
-// Auto-resize feedback textarea
-document.getElementById('feedback')?.addEventListener('input', function() {
-    this.style.height = 'auto';
-    this.style.height = this.scrollHeight + 'px';
-});
-
 // Show/hide feedback textarea based on reason selection
 document.querySelectorAll('input[name="reason"]').forEach(radio => {
     radio.addEventListener('change', function() {
@@ -360,6 +456,12 @@ document.querySelectorAll('input[name="reason"]').forEach(radio => {
             feedbackTextarea.required = false;
         }
     });
+});
+
+// Auto-resize feedback textarea
+document.getElementById('feedback')?.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = this.scrollHeight + 'px';
 });
 </script>
 

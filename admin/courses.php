@@ -299,6 +299,22 @@ include '../includes/head.php';
                 <h1 class="h3 mb-0">
                     <i class="fas fa-graduation-cap text-primary"></i>
                     Course Management
+                    <?php
+                    try {
+                        $totalCourses = $courseStats['total_courses'] ?? 0;
+                        $totalModules = $courseStats['total_modules'] ?? 0;
+                        $totalMaterials = $courseStats['total_materials'] ?? 0;
+                        if ($totalCourses > 0):
+                        ?>
+                        <span class="badge bg-info ms-2"><?php echo $totalCourses; ?> Courses</span>
+                        <?php endif; ?>
+                        <?php if ($totalModules > 0): ?>
+                        <span class="badge bg-success ms-2"><?php echo $totalModules; ?> Modules</span>
+                        <?php endif; ?>
+                        <?php if ($totalMaterials > 0): ?>
+                        <span class="badge bg-warning text-dark ms-2"><?php echo $totalMaterials; ?> Materials</span>
+                        <?php endif; ?>
+                    <?php } catch (Exception $e) { /* Silently fail */ } ?>
                 </h1>
                 <button class="btn btn-primary" type="button" onclick="openCreateCourseModal()">
                     <i class="fas fa-plus me-2"></i>Add New Course

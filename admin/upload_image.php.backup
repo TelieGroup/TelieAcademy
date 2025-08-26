@@ -1,0 +1,232 @@
+<?php
+// Set content type to JSON
+header('Content-Type: application/json');
+
+// Prevent any output before headers
+ob_start();
+
+try {
+    // Get the absolute path to the project root
+    $projectRoot = dirname(__DIR__);
+    
+    // Include session configuration first
+    require_once $projectRoot . '/config/session.php';
+    
+    // Ensure session is started
+    if (session_status() == PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // Include User class
+    require_once $projectRoot . '/includes/User.php';
+    
+    // Check if user is logged in and is admin
+    $user = new User();
+    
+    // Debug session information
+    $sessionDebug = [
+        'session_status' => session_status(),
+        'session_id' => session_id(),
+        'session_name' => session_name(),
+        'session_data' => $_SESSION ?? 'no session data',
+        'cookies' => $_COOKIE,
+        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+    ];
+    
+    if (!$user->isLoggedIn()) {
+        // Log the authentication failure for debugging
+        error_log("Upload authentication failed - Session debug: " . json_encode($sessionDebug));
+        
+        http_response_code(401);
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Authentication required. Please log in again.',
+            'debug' => $sessionDebug
+        ]);
+        exit;
+    }
+    
+    $currentUser = $user->getCurrentUser();
+    if (!$currentUser || !$currentUser['is_admin']) {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Admin access required.',
+            'debug' => $sessionDebug
+        ]);
+        exit;
+    }
+    
+    // Check if it's a POST request
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        http_response_code(405);
+        echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+        exit;
+    }
+    
+    // Check if image file was uploaded
+    if (!isset($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+        $errorMessage = 'No image uploaded';
+        if (isset($_FILES['image']['error'])) {
+            switch ($_FILES['image']['error']) {
+                case UPLOAD_ERR_INI_SIZE:
+                case UPLOAD_ERR_FORM_SIZE:
+                    $errorMessage = 'File too large';
+                    break;
+                case UPLOAD_ERR_PARTIAL:
+                    $errorMessage = 'File upload was incomplete';
+                    break;
+                case UPLOAD_ERR_NO_FILE:
+                    $errorMessage = 'No file was uploaded';
+                    break;
+                case UPLOAD_ERR_NO_TMP_DIR:
+                    $errorMessage = 'Missing temporary folder';
+                    break;
+                case UPLOAD_ERR_CANT_WRITE:
+                    $errorMessage = 'Failed to write file to disk';
+                    break;
+                case UPLOAD_ERR_EXTENSION:
+                    $errorMessage = 'File upload stopped by extension';
+                    break;
+            }
+        }
+        
+        echo json_encode(['success' => false, 'message' => $errorMessage]);
+        exit;
+    }
+    
+    $file = $_FILES['image'];
+    $altText = $_POST['alt_text'] ?? '';
+    $caption = $_POST['caption'] ?? '';
+    
+    // Validate file type
+    $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!in_array($file['type'], $allowedTypes)) {
+        echo json_encode(['success' => false, 'message' => 'Invalid file type. Only JPG, PNG, GIF, and WebP images are allowed.']);
+        exit;
+    }
+    
+    // Validate file size (5MB limit)
+    $maxSize = 5 * 1024 * 1024; // 5MB
+    if ($file['size'] > $maxSize) {
+        echo json_encode(['success' => false, 'message' => 'File size must be less than 5MB.']);
+        exit;
+    }
+    
+    // Create upload directory if it doesn't exist
+    $uploadDir = $projectRoot . '/uploads/posts/';
+    if (!is_dir($uploadDir)) {
+        if (!mkdir($uploadDir, 0755, true)) {
+            echo json_encode(['success' => false, 'message' => 'Failed to create upload directory']);
+            exit;
+        }
+    }
+    
+    // Generate unique filename
+    $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    $uniqueName = uniqid('post_img_') . '_' . time() . '.' . $fileExtension;
+    $uploadPath = $uploadDir . $uniqueName;
+    
+    // Move uploaded file to destination
+    if (!move_uploaded_file($file['tmp_name'], $uploadPath)) {
+        echo json_encode(['success' => false, 'message' => 'Failed to save uploaded file.']);
+        exit;
+    }
+    
+    // Get file dimensions for images
+    $imageInfo = getimagesize($uploadPath);
+    $width = $imageInfo[0] ?? null;
+    $height = $imageInfo[1] ?? null;
+    
+    // Save to database (optional - you can create a media table if needed)
+    try {
+        require_once $projectRoot . '/config/database.php';
+        
+        // Create media table if it doesn't exist
+        $createTableSQL = "
+            CREATE TABLE IF NOT EXISTS media (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                filename VARCHAR(255) NOT NULL,
+                original_name VARCHAR(255) NOT NULL,
+                file_path VARCHAR(500) NOT NULL,
+                file_type VARCHAR(100) NOT NULL,
+                file_size INT NOT NULL,
+                width INT,
+                height INT,
+                alt_text TEXT,
+                caption TEXT,
+                uploaded_by INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE CASCADE
+            )
+        ";
+        
+        $pdo->exec($createTableSQL);
+        
+        // Insert media record
+        $insertSQL = "
+            INSERT INTO media (filename, original_name, file_path, file_type, file_size, width, height, alt_text, caption, uploaded_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ";
+        
+        $stmt = $pdo->prepare($insertSQL);
+        $stmt->execute([
+            $uniqueName,
+            $file['name'],
+            'uploads/posts/' . $uniqueName,
+            $file['type'],
+            $file['size'],
+            $width,
+            $height,
+            $altText,
+            $caption,
+            $currentUser['id']
+        ]);
+        
+        $mediaId = $pdo->lastInsertId();
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Image uploaded successfully',
+            'file_path' => 'uploads/posts/' . $uniqueName,
+            'media_id' => $mediaId,
+            'filename' => $uniqueName,
+            'original_name' => $file['name'],
+            'width' => $width,
+            'height' => $height
+        ]);
+        
+    } catch (PDOException $e) {
+        // If database insertion fails, still return success but log the error
+        error_log("Failed to save media to database: " . $e->getMessage());
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Image uploaded successfully (database record not saved)',
+            'file_path' => 'uploads/posts/' . $uniqueName,
+            'filename' => $uniqueName,
+            'original_name' => $file['name'],
+            'width' => $width,
+            'height' => $height
+        ]);
+    }
+    
+} catch (Exception $e) {
+    // Catch any other errors and return them as JSON
+    error_log("Upload error: " . $e->getMessage());
+    echo json_encode([
+        'success' => false, 
+        'message' => 'Server error: ' . $e->getMessage()
+    ]);
+} catch (Error $e) {
+    // Catch fatal errors
+    error_log("Fatal upload error: " . $e->getMessage());
+    echo json_encode([
+        'success' => false, 
+        'message' => 'Fatal server error: ' . $e->getMessage()
+    ]);
+}
+
+// Clean output buffer
+ob_end_flush();
+?> 

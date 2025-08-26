@@ -6,21 +6,34 @@ require_once 'includes/User.php';
 $course = new Course();
 $user = new User();
 
-// Check if user is logged in and premium
-$isLoggedIn = $user->isLoggedIn();
-$isPremium = $isLoggedIn ? $user->getCurrentUser()['is_premium'] : false;
+// Check if user is logged in
+if (!$user->isLoggedIn()) {
+    // Store the intended URL to redirect after login
+    $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'];
+    header('Location: index?login_required=1');
+    exit;
+}
+
+// Get current user data
+$currentUser = $user->getCurrentUser();
+
+// Check if user is premium
+if (!$currentUser['is_premium']) {
+    header('Location: index?premium_required=1');
+    exit;
+}
 
 // Get material ID from URL
 $materialId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 if (!$materialId) {
-    header('Location: courses.php');
+    header('Location: courses');
     exit;
 }
 
 // Get material details
 $material = $course->getMaterialById($materialId);
 if (!$material || !$material['is_active']) {
-    header('Location: courses.php');
+    header('Location: courses');
     exit;
 }
 
@@ -183,7 +196,7 @@ include 'includes/head.php';
                 <div class="col-12">
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="courses.php">Course Materials</a></li>
+                            <li class="breadcrumb-item"><a href="courses">Course Materials</a></li>
                             <?php if ($courseData): ?>
                                 <li class="breadcrumb-item"><a href="course.php?slug=<?php echo $courseData['slug']; ?>"><?php echo htmlspecialchars($courseData['title']); ?></a></li>
                             <?php endif; ?>
@@ -226,11 +239,11 @@ include 'includes/head.php';
                         </div>
                         <div class="col-md-4">
                             <div class="material-actions">
-                                <a href="download_material.php?id=<?php echo $material['id']; ?>" 
+                                <a href="download_material?id=<?php echo $material['id']; ?>" 
                                    class="btn btn-outline-primary">
                                     <i class="fas fa-download me-2"></i>Download
                                 </a>
-                                <a href="courses.php" class="btn btn-outline-secondary">
+                                <a href="courses" class="btn btn-outline-secondary">
                                     <i class="fas fa-arrow-left me-2"></i>Back to Courses
                                 </a>
                             </div>
@@ -287,7 +300,7 @@ include 'includes/head.php';
                             <i class="fas fa-file-alt"></i>
                             <h3>Preview Not Available</h3>
                             <p class="mb-3">This file type cannot be previewed in the browser.</p>
-                            <a href="download_material.php?id=<?php echo $material['id']; ?>" 
+                            <a href="download_material?id=<?php echo $material['id']; ?>" 
                                class="btn btn-primary">
                                 <i class="fas fa-download me-2"></i>Download to View
                             </a>
@@ -330,7 +343,7 @@ window.addEventListener('beforeunload', function() {
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         // Go back to courses
-        window.location.href = 'courses.php';
+        window.location.href = 'courses';
     }
 });
 </script>

@@ -740,5 +740,22 @@ class User {
             return false;
         }
     }
+
+    /**
+     * Get count of new users registered today for admin notification badge
+     */
+    public function getNewUsersToday() {
+        try {
+            $query = "SELECT COUNT(*) as new_users_count FROM " . $this->table . " 
+                      WHERE DATE(created_at) = CURDATE()";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            $result = $stmt->fetch();
+            return (int)($result['new_users_count'] ?? 0);
+        } catch (Exception $e) {
+            error_log("Error counting new users today: " . $e->getMessage());
+            return 0;
+        }
+    }
 }
 ?> 

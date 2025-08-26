@@ -8,7 +8,7 @@ $user = new User();
 
 // Check if user is logged in
 if (!$user->isLoggedIn()) {
-    header('Location: login.php');
+    header('Location: login');
     exit;
 }
 
@@ -30,14 +30,14 @@ if (!$hasAccess) {
     // Log access attempt
     error_log("Unauthorized download attempt by user ID: {$currentUser['id']} (Premium: {$currentUser['is_premium']}, Admin: {$currentUser['is_admin']})");
     
-    header('Location: premium.php');
+    header('Location: premium');
     exit;
 }
 
 // Get material ID from URL
 $materialId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 if (!$materialId) {
-    header('Location: courses.php');
+    header('Location: courses');
     exit;
 }
 
@@ -45,7 +45,7 @@ if (!$materialId) {
 $material = $course->getMaterialById($materialId);
 if (!$material) {
     error_log("Material not found for ID: $materialId");
-    header('Location: courses.php');
+    header('Location: courses');
     exit;
 }
 
@@ -59,7 +59,7 @@ if (strpos($filePath, '../') === 0) {
 if (!file_exists($filePath)) {
     error_log("File not found on disk: {$filePath} for material ID: $materialId");
     error_log("Original path: {$material['file_path']}, Fixed path: $filePath");
-    header('Location: courses.php');
+    header('Location: courses');
     exit;
 }
 

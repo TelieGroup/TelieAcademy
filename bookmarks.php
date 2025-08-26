@@ -49,7 +49,7 @@ include 'includes/head.php';
                         </p>
                     </div>
                     <div>
-                        <a href="index.php" class="btn btn-outline-primary">
+                        <a href="index" class="btn btn-outline-primary">
                             <i class="fas fa-arrow-left me-2"></i>Back to Home
                         </a>
                     </div>
@@ -66,7 +66,7 @@ include 'includes/head.php';
                             Start bookmarking posts you want to read later. 
                             Your bookmarks will appear here for easy access.
                         </p>
-                        <a href="index.php" class="btn btn-primary">
+                        <a href="index" class="btn btn-primary">
                             <i class="fas fa-search me-2"></i>Explore Posts
                         </a>
                     </div>
@@ -97,7 +97,7 @@ include 'includes/head.php';
                                     </div>
                                     
                                     <h5 class="card-title">
-                                        <a href="post.php?slug=<?php echo htmlspecialchars($bookmarkData['slug']); ?>" 
+                                        <a href="post?slug=<?php echo htmlspecialchars($bookmarkData['slug']); ?>" 
                                            class="text-decoration-none">
                                             <?php echo htmlspecialchars($bookmarkData['title']); ?>
                                         </a>
@@ -120,7 +120,7 @@ include 'includes/head.php';
                                         </div>
                                         
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <a href="post.php?slug=<?php echo htmlspecialchars($bookmarkData['slug']); ?>" 
+                                            <a href="post?slug=<?php echo htmlspecialchars($bookmarkData['slug']); ?>" 
                                                class="btn btn-primary btn-sm">
                                                 <i class="fas fa-eye me-1"></i>Read
                                             </a>

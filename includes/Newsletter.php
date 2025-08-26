@@ -7,6 +7,7 @@ class Newsletter {
 
     public function __construct() {
         $this->conn = getDB();
+        $this->ensureUnsubscribeFeedbackTable();
     }
 
     // Subscribe to newsletter with enhanced data and user authentication
@@ -356,6 +357,141 @@ class Newsletter {
             }
         } catch (Exception $e) {
             return ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
+        }
+    }
+
+    // Send unsubscribe confirmation email
+    public function sendUnsubscribeConfirmation($email, $confirmationToken, $reason = '', $feedback = '') {
+        try {
+            // Store the confirmation token and feedback temporarily
+            $query = "UPDATE " . $this->table . " SET 
+                      unsubscribe_confirmation_token = :token,
+                      unsubscribe_reason = :reason,
+                      unsubscribe_feedback = :feedback,
+                      unsubscribe_requested_at = NOW()
+                      WHERE email = :email";
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':token', $confirmationToken);
+            $stmt->bindParam(':reason', $reason);
+            $stmt->bindParam(':feedback', $feedback);
+            $stmt->bindParam(':email', $email);
+            
+            if (!$stmt->execute()) {
+                return ['success' => false, 'message' => 'Failed to process unsubscribe request'];
+            }
+            
+            // Send confirmation email using EmailHelper
+            require_once dirname(__DIR__) . '/includes/EmailHelper.php';
+            $emailHelper = new EmailHelper();
+            
+            $subject = 'Confirm Your Unsubscribe Request - TelieAcademy';
+            $content = $this->generateUnsubscribeConfirmationEmail($email, $confirmationToken, $reason, $feedback);
+            
+            $result = $emailHelper->sendSingleEmail($email, $subject, $content);
+            
+            if ($result) {
+                return ['success' => true, 'message' => 'Confirmation email sent successfully'];
+            } else {
+                return ['success' => false, 'message' => 'Failed to send confirmation email'];
+            }
+            
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
+        }
+    }
+
+    // Generate unsubscribe confirmation email content
+    private function generateUnsubscribeConfirmationEmail($email, $token, $reason, $feedback) {
+        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
+        $host = $_SERVER['HTTP_HOST'];
+        $path = dirname($_SERVER['REQUEST_URI']);
+        
+        // If we're in the admin directory, go up one level
+        if (strpos($_SERVER['REQUEST_URI'], '/admin/') !== false) {
+            $path = dirname(dirname($_SERVER['REQUEST_URI']));
+        }
+        
+        // Ensure we have the correct path
+        if ($path === '/' || $path === '\\') {
+            $path = '';
+        }
+        
+        $confirmationLink = $protocol . $host . $path . '/confirm_unsubscribe?email=' . urlencode($email) . '&token=' . $token;
+        
+        return '
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Confirm Unsubscribe - TelieAcademy</title>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; }
+                .container { max-width: 600px; margin: 0 auto; background: #f8f9fa; border-radius: 10px; padding: 30px; }
+                .header { background: #dc3545; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; margin: -30px -30px 30px -30px; }
+                .content { background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; }
+                .button { display: inline-block; padding: 15px 30px; background: #dc3545; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
+                .button:hover { background: #c82333; }
+                .footer { text-align: center; color: #6c757d; font-size: 14px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Confirm Unsubscribe Request</h1>
+                </div>
+                
+                <div class="content">
+                    <h2>Hello,</h2>
+                    <p>We received a request to unsubscribe you from the TelieAcademy newsletter.</p>
+                    
+                    <p><strong>To complete your unsubscribe request, please click the button below:</strong></p>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="' . $confirmationLink . '" class="button">Confirm Unsubscribe</a>
+                    </div>
+                    
+                    <p><strong>What happens next?</strong></p>
+                    <ul>
+                        <li>You will be removed from our newsletter list</li>
+                        <li>You will no longer receive emails from us</li>
+                        <li>You can resubscribe anytime using our signup form</li>
+                    </ul>
+                    
+                    <p><strong>If you did not request this unsubscribe:</strong></p>
+                    <ul>
+                        <li>Simply ignore this email</li>
+                        <li>Your subscription will remain active</li>
+                        <li>You will continue to receive our newsletters</li>
+                    </ul>
+                </div>
+                
+                <div class="footer">
+                    <p>This confirmation link will expire in 24 hours for security reasons.</p>
+                    <p>Thank you for being part of our learning community!</p>
+                </div>
+            </div>
+        </body>
+        </html>';
+    }
+
+    // Clear unsubscribe confirmation data
+    public function clearUnsubscribeConfirmation($email) {
+        try {
+            $query = "UPDATE " . $this->table . " SET 
+                      unsubscribe_confirmation_token = NULL,
+                      unsubscribe_reason = NULL,
+                      unsubscribe_feedback = NULL,
+                      unsubscribe_requested_at = NULL
+                      WHERE email = :email";
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':email', $email);
+            return $stmt->execute();
+        } catch (Exception $e) {
+            error_log("Error clearing unsubscribe confirmation: " . $e->getMessage());
+            return false;
         }
     }
 
@@ -775,20 +911,224 @@ class Newsletter {
         }
     }
 
+    // Ensure unsubscribe feedback table exists
+    private function ensureUnsubscribeFeedbackTable() {
+        try {
+            $query = "CREATE TABLE IF NOT EXISTS unsubscribe_feedback (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                email VARCHAR(255) NOT NULL,
+                reason VARCHAR(100) NOT NULL,
+                feedback TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_viewed BOOLEAN DEFAULT FALSE,
+                viewed_at TIMESTAMP NULL,
+                INDEX idx_email (email),
+                INDEX idx_created_at (created_at),
+                INDEX idx_is_viewed (is_viewed)
+            )";
+            $this->conn->exec($query);
+            
+            // Check if we need to add missing columns (for existing tables)
+            $this->addMissingColumns();
+        } catch (Exception $e) {
+            error_log("Error ensuring unsubscribe feedback table: " . $e->getMessage());
+        }
+    }
+    
+    // Add missing columns for backward compatibility
+    private function addMissingColumns() {
+        try {
+            // Check if unsubscribe_reason column exists
+            $stmt = $this->conn->query("SHOW COLUMNS FROM unsubscribe_feedback LIKE 'unsubscribe_reason'");
+            if ($stmt->rowCount() == 0) {
+                $this->conn->exec("ALTER TABLE unsubscribe_feedback ADD COLUMN unsubscribe_reason VARCHAR(100) AFTER reason");
+                $this->conn->exec("UPDATE unsubscribe_feedback SET unsubscribe_reason = reason WHERE unsubscribe_reason IS NULL");
+            }
+            
+            // Check if unsubscribe_requested_at column exists
+            $stmt = $this->conn->query("SHOW COLUMNS FROM unsubscribe_feedback LIKE 'unsubscribe_requested_at'");
+            if ($stmt->rowCount() == 0) {
+                $this->conn->exec("ALTER TABLE unsubscribe_feedback ADD COLUMN unsubscribe_requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER created_at");
+                $this->conn->exec("UPDATE unsubscribe_feedback SET unsubscribe_requested_at = created_at WHERE unsubscribe_requested_at IS NULL");
+            }
+            
+            // Check if is_viewed column exists
+            $stmt = $this->conn->query("SHOW COLUMNS FROM unsubscribe_feedback LIKE 'is_viewed'");
+            if ($stmt->rowCount() == 0) {
+                $this->conn->exec("ALTER TABLE unsubscribe_feedback ADD COLUMN is_viewed BOOLEAN DEFAULT FALSE AFTER unsubscribe_requested_at");
+                $this->conn->exec("ALTER TABLE unsubscribe_feedback ADD COLUMN viewed_at TIMESTAMP NULL AFTER is_viewed");
+            }
+        } catch (Exception $e) {
+            error_log("Error adding missing columns: " . $e->getMessage());
+        }
+    }
+
     // Log unsubscribe feedback
     public function logUnsubscribeFeedback($email, $reason, $feedback) {
         try {
-            $query = "INSERT INTO unsubscribe_feedback (email, reason, feedback, created_at) 
-                      VALUES (:email, :reason, :feedback, NOW())";
+            $query = "INSERT INTO unsubscribe_feedback (email, reason, unsubscribe_reason, feedback, created_at, unsubscribe_requested_at, is_viewed) 
+                      VALUES (:email, :reason, :unsubscribe_reason, :feedback, NOW(), NOW(), FALSE)";
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':email', $email);
             $stmt->bindParam(':reason', $reason);
+            $stmt->bindParam(':unsubscribe_reason', $reason);
             $stmt->bindParam(':feedback', $feedback);
             $stmt->execute();
             return true;
         } catch (Exception $e) {
             error_log("Error logging unsubscribe feedback: " . $e->getMessage());
             return false;
+        }
+    }
+
+    // Get all unsubscribe feedback for admin
+    public function getUnsubscribeFeedback() {
+        try {
+            $query = "SELECT uf.id, uf.email, 
+                             COALESCE(uf.unsubscribe_reason, uf.reason) as unsubscribe_reason,
+                             uf.feedback as unsubscribe_feedback,
+                             COALESCE(uf.unsubscribe_requested_at, uf.created_at) as unsubscribe_requested_at,
+                             u.username 
+                      FROM unsubscribe_feedback uf 
+                      LEFT JOIN users u ON u.email = uf.email 
+                      ORDER BY uf.created_at DESC";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error getting unsubscribe feedback: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    // Get count of unsubscribe feedback for admin
+    public function getUnsubscribeFeedbackCount() {
+        try {
+            $query = "SELECT COUNT(*) as count FROM unsubscribe_feedback";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            $result = $stmt->fetch();
+            return $result['count'] ?? 0;
+        } catch (Exception $e) {
+            error_log("Error getting unsubscribe feedback count: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    // Get count of unviewed unsubscribe feedback for admin
+    public function getUnviewedUnsubscribeFeedbackCount() {
+        try {
+            $query = "SELECT COUNT(*) as count FROM unsubscribe_feedback WHERE is_viewed = FALSE";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            $result = $stmt->fetch();
+            return $result['count'] ?? 0;
+        } catch (Exception $e) {
+            error_log("Error getting unviewed unsubscribe feedback count: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    // Mark all current feedback as viewed
+    public function markAllFeedbackAsViewed() {
+        try {
+            $query = "UPDATE unsubscribe_feedback SET is_viewed = TRUE, viewed_at = NOW() WHERE is_viewed = FALSE";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            
+            $count = $stmt->rowCount();
+            return ['success' => true, 'message' => "Marked {$count} feedback entries as viewed"];
+        } catch (Exception $e) {
+            error_log("Error marking feedback as viewed: " . $e->getMessage());
+            return ['success' => false, 'message' => 'Error marking feedback as viewed: ' . $e->getMessage()];
+        }
+    }
+
+    // Delete specific unsubscribe feedback
+    public function deleteUnsubscribeFeedback($feedbackId) {
+        try {
+            $query = "DELETE FROM unsubscribe_feedback WHERE id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':id', $feedbackId);
+            $stmt->execute();
+            
+            if ($stmt->rowCount() > 0) {
+                return ['success' => true, 'message' => 'Feedback deleted successfully'];
+            } else {
+                return ['success' => false, 'message' => 'Feedback not found'];
+            }
+        } catch (Exception $e) {
+            error_log("Error deleting unsubscribe feedback: " . $e->getMessage());
+            return ['success' => false, 'message' => 'Error deleting feedback: ' . $e->getMessage()];
+        }
+    }
+
+    // Clear all unsubscribe feedback
+    public function clearAllUnsubscribeFeedback() {
+        try {
+            $query = "DELETE FROM unsubscribe_feedback";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            
+            $count = $stmt->rowCount();
+            return ['success' => true, 'message' => "Cleared {$count} feedback entries"];
+        } catch (Exception $e) {
+            error_log("Error clearing unsubscribe feedback: " . $e->getMessage());
+            return ['success' => false, 'message' => 'Error clearing feedback: ' . $e->getMessage()];
+        }
+    }
+
+    // Get specific feedback by ID
+    public function getFeedbackById($feedbackId) {
+        try {
+            $query = "SELECT uf.id, uf.email, 
+                             COALESCE(uf.unsubscribe_reason, uf.reason) as unsubscribe_reason,
+                             uf.feedback as unsubscribe_feedback,
+                             COALESCE(uf.unsubscribe_requested_at, uf.created_at) as unsubscribe_requested_at,
+                             u.username 
+                      FROM unsubscribe_feedback uf 
+                      LEFT JOIN users u ON u.email = uf.email 
+                      WHERE uf.id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':id', $feedbackId);
+            $stmt->execute();
+            
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error getting feedback by ID: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get count of pending newsletter subscriptions for admin notification badge
+     */
+    public function getPendingSubscriptionCount() {
+        try {
+            $query = "SELECT COUNT(*) as pending_count FROM " . $this->table . " WHERE status = 'pending'";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            $result = $stmt->fetch();
+            return (int)($result['pending_count'] ?? 0);
+        } catch (Exception $e) {
+            error_log("Error counting pending subscriptions: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Get total subscriber count for admin notification badge
+     */
+    public function getTotalSubscriberCount() {
+        try {
+            $query = "SELECT COUNT(*) as total_count FROM " . $this->table . " WHERE is_active = 1";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            $result = $stmt->fetch();
+            return (int)($result['total_count'] ?? 0);
+        } catch (Exception $e) {
+            error_log("Error counting total subscribers: " . $e->getMessage());
+            return 0;
         }
     }
 }

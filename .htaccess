@@ -1,0 +1,52 @@
+RewriteEngine On
+
+# Remove .php extension from URLs
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^([^\.]+)$ $1.php [NC,L]
+
+# Handle URLs without .php extension
+RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s([^.]+)\.php [NC]
+RewriteRule ^ %1 [R=301,L]
+
+# Ensure .php files are accessible directly
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^([^\.]+)\.php$ $1.php [NC,L]
+
+# Specific redirects for important pages
+RewriteRule ^confirm_unsubscribe\.php$ confirm_unsubscribe [R=301,L]
+RewriteRule ^subscription-settings\.php$ subscription-settings [R=301,L]
+
+# Redirect common .php files to clean URLs
+RewriteRule ^index\.php$ index [R=301,L]
+RewriteRule ^categories\.php$ categories [R=301,L]
+RewriteRule ^posts\.php$ posts [R=301,L]
+RewriteRule ^tags\.php$ tags [R=301,L]
+RewriteRule ^courses\.php$ courses [R=301,L]
+RewriteRule ^contact-us\.php$ contact-us [R=301,L]
+RewriteRule ^my-messages\.php$ my-messages [R=301,L]
+RewriteRule ^bookmarks\.php$ bookmarks [R=301,L]
+RewriteRule ^profile\.php$ profile [R=301,L]
+RewriteRule ^logout\.php$ logout [R=301,L]
+RewriteRule ^unsubscribe\.php$ unsubscribe [R=301,L]
+RewriteRule ^post\.php$ post [R=301,L]
+RewriteRule ^course\.php$ course [R=301,L]
+
+# Admin panel clean URLs
+RewriteRule ^admin/comments\.php$ admin/comments [R=301,L]
+RewriteRule ^admin/newsletter\.php$ admin/newsletter [R=301,L]
+RewriteRule ^admin/posts\.php$ admin/posts [R=301,L]
+RewriteRule ^admin/users\.php$ admin/users [R=301,L]
+RewriteRule ^admin/course_modules\.php$ admin/course_modules [R=301,L]
+RewriteRule ^admin/contact_messages\.php$ admin/contact_messages [R=301,L]
+RewriteRule ^admin/categories\.php$ admin/categories [R=301,L]
+RewriteRule ^admin/tags\.php$ admin/tags [R=301,L]
+RewriteRule ^admin/media\.php$ admin/media [R=301,L]
+RewriteRule ^admin/courses\.php$ admin/courses [R=301,L]
+RewriteRule ^admin/download_analytics\.php$ admin/download_analytics [R=301,L]
+RewriteRule ^admin/send_newsletter\.php$ admin/send_newsletter [R=301,L]
+
+# Redirect old .php URLs to clean URLs (optional - uncomment if you want to force redirects)
+# RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s([^.]+)\.php [NC]
+# RewriteRule ^ %1 [R=301,L]

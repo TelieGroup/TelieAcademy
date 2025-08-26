@@ -446,6 +446,50 @@ class EmailHelper {
     }
     
     /**
+     * Send a single email (for unsubscribe confirmations, etc.)
+     */
+    public function sendSingleEmail($toEmail, $subject, $content) {
+        try {
+            // Check if SMTP password is configured
+            if (empty($this->smtpPassword)) {
+                error_log("SMTP password not configured for email to: $toEmail");
+                return false;
+            }
+            
+            // Use PHPMailer for sending
+            $mail = $this->createPHPMailer();
+            if (!$mail) {
+                error_log("Failed to initialize PHPMailer for email to: $toEmail");
+                return false;
+            }
+            
+            try {
+                $mail->addAddress($toEmail);
+                $mail->Subject = $subject;
+                $mail->Body = $content;
+                
+                $sent = $mail->send();
+                
+                if ($sent) {
+                    error_log("Email sent successfully to: $toEmail");
+                    return true;
+                } else {
+                    error_log("Failed to send email to: $toEmail");
+                    return false;
+                }
+                
+            } catch (PHPMailerException $e) {
+                error_log("PHPMailer error sending email to $toEmail: " . $e->getMessage());
+                return false;
+            }
+            
+        } catch (Exception $e) {
+            error_log("Error sending email to $toEmail: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Test email functionality
      */
     public function testEmail($toEmail, $subject = 'Test Email', $content = 'This is a test email from TelieAcademy newsletter system.') {

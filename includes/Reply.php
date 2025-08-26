@@ -229,6 +229,22 @@ class Reply {
             return 0;
         }
     }
+
+    /**
+     * Get count of pending replies for admin notification badge
+     */
+    public function getPendingReplyCount() {
+        try {
+            $query = "SELECT COUNT(*) as pending_count FROM " . $this->table . " WHERE status = 'pending'";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            $result = $stmt->fetch();
+            return (int)($result['pending_count'] ?? 0);
+        } catch (Exception $e) {
+            error_log("Error counting pending replies: " . $e->getMessage());
+            return 0;
+        }
+    }
 }
 ?>
 

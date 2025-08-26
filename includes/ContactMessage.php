@@ -8,6 +8,8 @@ class ContactMessage {
     
     public function __construct() {
         $this->db = getDB();
+        // Ensure required columns exist
+        $this->ensureSchema();
     }
     
     /**
@@ -338,6 +340,81 @@ class ContactMessage {
         } catch (PDOException $e) {
             error_log("Error deleting message: " . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Get count of unread (non-internal) admin replies for a user
+     */
+    public function getUnreadReplyCountForUser($userId) {
+        try {
+            $sql = "SELECT COUNT(*) AS unread_count
+                    FROM {$this->repliesTable} cr
+                    INNER JOIN {$this->messagesTable} cm ON cm.id = cr.message_id
+                    WHERE cm.user_id = :user_id
+                      AND cr.is_internal = 0
+                      AND (cm.user_last_viewed_at IS NULL OR cr.created_at > cm.user_last_viewed_at)";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':user_id', $userId);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return (int)($row['unread_count'] ?? 0);
+        } catch (PDOException $e) {
+            error_log("Error counting unread contact replies: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Mark all user's messages as viewed now (clears unread badge)
+     */
+    public function markAllAsViewedByUser($userId) {
+        try {
+            $sql = "UPDATE {$this->messagesTable} 
+                    SET user_last_viewed_at = NOW()
+                    WHERE user_id = :user_id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':user_id', $userId);
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Error marking contact messages viewed: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get count of new/unread messages for admin notification badge
+     */
+    public function getNewMessageCount() {
+        try {
+            $sql = "SELECT COUNT(*) AS new_count
+                    FROM {$this->messagesTable} 
+                    WHERE status = 'new'";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return (int)($row['new_count'] ?? 0);
+        } catch (PDOException $e) {
+            error_log("Error counting new messages: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Ensure schema supports user_last_viewed_at column
+     */
+    private function ensureSchema() {
+        try {
+            // Add user_last_viewed_at column if missing
+            $checkSql = "SHOW COLUMNS FROM {$this->messagesTable} LIKE 'user_last_viewed_at'";
+            $check = $this->db->query($checkSql);
+            if ($check && $check->rowCount() === 0) {
+                $alter = "ALTER TABLE {$this->messagesTable} ADD COLUMN user_last_viewed_at DATETIME NULL DEFAULT NULL";
+                $this->db->exec($alter);
+            }
+        } catch (PDOException $e) {
+            // Log but don't block app
+            error_log("ensureSchema (contact_messages): " . $e->getMessage());
         }
     }
 }
