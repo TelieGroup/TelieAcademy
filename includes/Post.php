@@ -247,8 +247,8 @@ class Post {
             $slug = $this->generateSlug($data['title']);
             
             $query = "INSERT INTO " . $this->table . " 
-                     (title, slug, excerpt, content, category_id, status, is_premium, is_featured, author_id, published_at) 
-                     VALUES (:title, :slug, :excerpt, :content, :category_id, :status, :is_premium, :is_featured, :author_id, :published_at)";
+                     (title, slug, excerpt, content, category_id, course_module_id, lesson_order, status, is_premium, is_featured, author_id, published_at) 
+                     VALUES (:title, :slug, :excerpt, :content, :category_id, :course_module_id, :lesson_order, :status, :is_premium, :is_featured, :author_id, :published_at)";
             
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':title', $data['title']);
@@ -256,6 +256,8 @@ class Post {
             $stmt->bindParam(':excerpt', $data['excerpt']);
             $stmt->bindParam(':content', $data['content']);
             $stmt->bindParam(':category_id', $data['category_id']);
+            $stmt->bindParam(':course_module_id', $data['course_module_id']);
+            $stmt->bindParam(':lesson_order', $data['lesson_order']);
             $stmt->bindParam(':status', $data['status']);
             $stmt->bindParam(':is_premium', $data['is_premium']);
             $stmt->bindParam(':is_featured', $data['is_featured']);
@@ -408,7 +410,8 @@ class Post {
             
             $query = "UPDATE " . $this->table . " 
                      SET title = :title, slug = :slug, excerpt = :excerpt, content = :content, 
-                         category_id = :category_id, status = :status, is_premium = :is_premium, 
+                         category_id = :category_id, course_module_id = :course_module_id, lesson_order = :lesson_order,
+                         status = :status, is_premium = :is_premium, 
                          is_featured = :is_featured, published_at = :published_at, updated_at = CURRENT_TIMESTAMP
                      WHERE id = :id";
             
@@ -419,6 +422,8 @@ class Post {
             $stmt->bindParam(':excerpt', $data['excerpt']);
             $stmt->bindParam(':content', $data['content']);
             $stmt->bindParam(':category_id', $data['category_id']);
+            $stmt->bindParam(':course_module_id', $data['course_module_id']);
+            $stmt->bindParam(':lesson_order', $data['lesson_order']);
             $stmt->bindParam(':status', $data['status']);
             $stmt->bindParam(':is_premium', $data['is_premium']);
             $stmt->bindParam(':is_featured', $data['is_featured']);

@@ -7,6 +7,7 @@ require_once 'includes/User.php';
 require_once 'includes/Tag.php';
 require_once 'includes/View.php';
 require_once 'includes/Vote.php';
+require_once 'includes/Course.php';
 
 $post = new Post();
 $comment = new Comment();
@@ -15,6 +16,7 @@ $user = new User();
 $tag = new Tag();
 $view = new View();
 $vote = new Vote();
+$course = new Course();
 
 $slug = isset($_GET['slug']) ? $_GET['slug'] : '';
 
@@ -28,6 +30,49 @@ if (empty($slug)) {
 }
 
 $postData = $post->getPostBySlug($slug, $isPremium);
+
+// Get course context if this post is part of a course
+$courseContext = null;
+$courseModuleInfo = null;
+$nextLesson = null;
+$prevLesson = null;
+$userProgress = null;
+$lessonMaterials = [];
+
+if ($postData && !empty($postData['course_module_id'])) {
+    // Get module information
+    $courseModuleInfo = $course->getModuleById($postData['course_module_id']);
+    
+    if ($courseModuleInfo) {
+        // Get course information
+        $courseContext = $course->getCourseById($courseModuleInfo['course_id']);
+        
+        // Get all posts in this module for navigation
+        $modulePosts = $course->getPostsByModule($postData['course_module_id'], true);
+        
+        // Find current post position and get next/previous
+        foreach ($modulePosts as $index => $modulePost) {
+            if ($modulePost['id'] == $postData['id']) {
+                $nextLesson = isset($modulePosts[$index + 1]) ? $modulePosts[$index + 1] : null;
+                $prevLesson = isset($modulePosts[$index - 1]) ? $modulePosts[$index - 1] : null;
+                break;
+            }
+        }
+        
+        // Get user progress if logged in
+        if ($isLoggedIn) {
+            $currentUser = $user->getCurrentUser();
+            $progressData = $course->getUserCourseProgress($currentUser['id'], $courseContext['id']);
+            $userProgress = isset($progressData[$postData['id']]) ? $progressData[$postData['id']] : null;
+            
+            // Get materials related to this lesson
+            $lessonMaterials = $course->getMaterialsByLesson($postData['id'], $currentUser['id']);
+        } else {
+            // Get materials without user-specific data
+            $lessonMaterials = $course->getMaterialsByLesson($postData['id']);
+        }
+    }
+}
 
 // Enhance post content HTML (images: responsive, lazy-loading, enhanced styling)
 function enhancePostContentHtml($html) {
@@ -614,6 +659,740 @@ include 'includes/head.php';
     .enhanced-features-badge:hover {
         transform: translateY(-1px);
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Lesson Materials Styles */
+    .lesson-materials-section {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        border: 1px solid #dee2e6;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    .materials-header {
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem !important;
+    }
+    
+    .material-card {
+        background: white;
+        border-radius: 12px;
+        border: 1px solid #e9ecef;
+        transition: all 0.3s ease;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .material-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        border-color: #007bff;
+    }
+    
+    .material-icon {
+        text-align: center;
+        padding: 1.5rem 1rem 1rem;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+    
+    .material-content {
+        padding: 1rem 1.25rem;
+        flex-grow: 1;
+    }
+    
+    .material-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+        line-height: 1.3;
+    }
+    
+    .material-description {
+        font-size: 0.875rem;
+        color: #6c757d;
+        line-height: 1.4;
+        margin-bottom: 0.75rem;
+    }
+    
+    .material-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .user-download-info {
+        padding: 0.5rem;
+        background: #f8f9fa;
+        border-radius: 6px;
+        border-left: 3px solid #28a745;
+    }
+    
+    .material-footer {
+        padding: 1rem 1.25rem;
+        background: #f8f9fa;
+        border-top: 1px solid #e9ecef;
+    }
+    
+    .material-footer .btn {
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .material-footer .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Responsive material cards */
+    @media (max-width: 768px) {
+        .lesson-materials-section {
+            padding: 1.5rem;
+        }
+        
+        .material-icon {
+            padding: 1rem;
+        }
+        
+        .material-icon i {
+            font-size: 2rem !important;
+        }
+        
+        .material-content {
+            padding: 0.75rem 1rem;
+        }
+        
+        .material-footer {
+            padding: 0.75rem 1rem;
+        }
+    }
+    
+    /* Course Navigation Styles */
+    .course-navigation-section {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        border: 1px solid #dee2e6;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    .course-context-header {
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .course-info h5 {
+        color: #2d3748;
+        font-weight: 600;
+    }
+    
+    .lesson-progress-bar {
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .progress-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6c757d;
+    }
+    
+    .progress-percentage {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #28a745;
+    }
+    
+    .lesson-navigation {
+        margin-top: 1.5rem;
+    }
+    
+    .lesson-nav-btn {
+        display: block;
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.3s ease;
+        margin-bottom: 1rem;
+        height: 100%;
+    }
+    
+    .lesson-nav-btn:hover {
+        border-color: #007bff;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.15);
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .lesson-nav-btn.disabled {
+        background: #f8f9fa;
+        border-color: #e9ecef;
+        cursor: default;
+        opacity: 0.7;
+    }
+    
+    .lesson-nav-btn.disabled:hover {
+        transform: none;
+        box-shadow: none;
+        border-color: #e9ecef;
+    }
+    
+    .lesson-nav-btn .nav-direction {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6c757d;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .lesson-nav-btn.next-lesson .nav-direction {
+        justify-content: flex-end;
+    }
+    
+    .lesson-nav-btn .nav-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #2d3748;
+        line-height: 1.3;
+    }
+    
+    .lesson-nav-btn.next-lesson .nav-title {
+        text-align: right;
+    }
+    
+    .lesson-nav-btn:hover .nav-title {
+        color: #007bff;
+    }
+    
+    .lesson-nav-btn.disabled .nav-title {
+        color: #6c757d;
+    }
+    
+    /* Enhanced Course Hero Section */
+    .course-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        color: white;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .course-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 200px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(50%, -50%);
+    }
+    
+    .course-hero-content {
+        position: relative;
+        z-index: 2;
+    }
+    
+    .course-badge {
+        display: inline-flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 1rem;
+        backdrop-filter: blur(10px);
+    }
+    
+    .course-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: white;
+    }
+    
+    .course-subtitle {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin-bottom: 1.5rem;
+    }
+    
+    .lesson-number {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.875rem;
+        backdrop-filter: blur(10px);
+    }
+    
+    .course-progress-overview {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1.5rem;
+        backdrop-filter: blur(10px);
+        margin-top: 1.5rem;
+    }
+    
+    .progress-stats {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+    
+    .stat-item {
+        text-align: center;
+        flex: 1;
+    }
+    
+    .stat-number {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        opacity: 0.8;
+    }
+    
+    .overall-progress-bar {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .overall-progress-bar .progress-bar {
+        background: linear-gradient(90deg, #4ade80 0%, #22c55e 100%);
+        height: 10px;
+    }
+    
+    .course-hero-actions {
+        position: absolute;
+        top: 2rem;
+        right: 2rem;
+        z-index: 2;
+    }
+    
+    .course-hero-actions .btn {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        backdrop-filter: blur(10px);
+        margin-left: 0.5rem;
+    }
+    
+    .course-hero-actions .btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.5);
+        color: white;
+    }
+    
+    /* Current Lesson Progress */
+    .current-lesson-progress {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .progress-header h6 {
+        color: #2d3748;
+        font-weight: 600;
+        margin: 0;
+    }
+    
+    .progress-percentage {
+        text-align: right;
+    }
+    
+    .percentage-number {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #28a745;
+    }
+    
+    .percentage-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    .progress-visual .progress {
+        background: #e9ecef;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .progress-visual .progress-bar {
+        background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+        transition: width 0.6s ease;
+    }
+    
+    .completion-celebration {
+        text-align: center;
+        padding: 1rem;
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border-radius: 12px;
+        border: 1px solid #fbbf24;
+    }
+    
+    .celebration-content h6 {
+        color: #059669;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Learning Path Navigation */
+    .learning-path-navigation {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .learning-path-navigation h6 {
+        color: #2d3748;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    
+    .nav-status {
+        margin-top: 0.5rem;
+    }
+    
+    .status-completed {
+        color: #28a745;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .status-available {
+        color: #007bff;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    /* Enhanced Materials Section */
+    .materials-summary {
+        display: flex;
+        align-items: center;
+    }
+    
+    .summary-item {
+        text-align: center;
+        padding: 0.5rem 1rem;
+        background: rgba(13, 110, 253, 0.1);
+        border-radius: 8px;
+        border: 1px solid rgba(13, 110, 253, 0.2);
+    }
+    
+    .summary-number {
+        display: block;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #0d6efd;
+    }
+    
+    .summary-label {
+        font-size: 0.75rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .material-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .material-order-badge {
+        background: #e9ecef;
+        color: #6c757d;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .learning-indicators {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .indicator-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .indicator-badge.requirement {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+    
+    .indicator-badge.related {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+    
+    .meta-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .status-badge.inactive {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    /* Course Recommendations */
+    .course-recommendations-section {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        border: 1px solid #dee2e6;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    .recommendations-header h5 {
+        color: #2d3748;
+        font-weight: 600;
+    }
+    
+    .recommendation-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        height: 100%;
+        transition: all 0.3s ease;
+    }
+    
+    .recommendation-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-icon {
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    
+    .card-icon i {
+        font-size: 2rem;
+    }
+    
+    .card-title {
+        color: #2d3748;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .card-text {
+        color: #6c757d;
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+    }
+    
+    .materials-count {
+        display: inline-block;
+        background: #e9ecef;
+        color: #6c757d;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    /* Floating Progress Indicator */
+    .floating-progress-indicator {
+        position: fixed;
+        top: 100px;
+        right: 30px;
+        z-index: 1000;
+        background: white;
+        border-radius: 50%;
+        padding: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+        opacity: 0;
+        transform: scale(0.8);
+        animation: fadeInScale 0.5s ease forwards;
+    }
+    
+    .floating-progress-indicator:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
+    }
+    
+    @keyframes fadeInScale {
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    .progress-container {
+        text-align: center;
+    }
+    
+    .progress-circle {
+        position: relative;
+        width: 60px;
+        height: 60px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .progress-ring {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+    }
+    
+    .progress-ring-bg {
+        fill: none;
+        stroke: #e9ecef;
+        stroke-width: 3;
+    }
+    
+    .progress-ring-fill {
+        fill: none;
+        stroke: #28a745;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-dasharray: 100;
+        stroke-dashoffset: 100;
+        transition: stroke-dashoffset 0.6s ease;
+    }
+    
+    .progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #28a745;
+    }
+    
+    .progress-label {
+        font-size: 0.75rem;
+        color: #6c757d;
+        font-weight: 500;
+        text-align: center;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .course-navigation-section {
+            padding: 1.5rem;
+        }
+        
+        .course-hero {
+            padding: 1.5rem;
+        }
+        
+        .course-hero-actions {
+            position: static;
+            margin-top: 1rem;
+            text-align: center;
+        }
+        
+        .course-hero-actions .btn {
+            margin: 0.25rem;
+        }
+        
+        .progress-stats {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .course-context-header .d-flex {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .lesson-nav-btn {
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .lesson-nav-btn .nav-title,
+        .lesson-nav-btn.next-lesson .nav-title {
+            text-align: left;
+        }
+        
+        .lesson-nav-btn.next-lesson .nav-direction {
+            justify-content: flex-start;
+        }
+        
+        .materials-summary {
+            margin-top: 1rem;
+            justify-content: center;
+        }
+        
+        .recommendation-card {
+            margin-bottom: 1rem;
+        }
+        
+        /* Floating progress indicator responsive */
+        .floating-progress-indicator {
+            top: 80px;
+            right: 20px;
+            padding: 0.75rem;
+        }
+        
+        .progress-circle {
+            width: 50px;
+            height: 50px;
+        }
+        
+        .progress-label {
+            font-size: 0.7rem;
+        }
     }
     
     .post-content .enhanced-table {
@@ -1324,8 +2103,14 @@ include 'includes/head.php';
             <!-- Breadcrumb Navigation -->
             <nav aria-label="breadcrumb" class="breadcrumb-nav mb-4">
                 <ol class="breadcrumb">
-                                    <li class="breadcrumb-item"><a href="index"><i class="fas fa-home"></i> Home</a></li>
-                <li class="breadcrumb-item"><a href="categories?category=<?php echo $postData['category_slug']; ?>"><?php echo htmlspecialchars($postData['category_name']); ?></a></li>
+                    <li class="breadcrumb-item"><a href="index"><i class="fas fa-home"></i> Home</a></li>
+                    <?php if ($courseContext): ?>
+                        <li class="breadcrumb-item"><a href="courses"><i class="fas fa-graduation-cap"></i> Courses</a></li>
+                        <li class="breadcrumb-item"><a href="course-view?course=<?php echo $courseContext['slug']; ?>"><?php echo htmlspecialchars($courseContext['title']); ?></a></li>
+                        <li class="breadcrumb-item text-muted"><?php echo htmlspecialchars($courseModuleInfo['title']); ?></li>
+                    <?php else: ?>
+                        <li class="breadcrumb-item"><a href="categories?category=<?php echo $postData['category_slug']; ?>"><?php echo htmlspecialchars($postData['category_name']); ?></a></li>
+                    <?php endif; ?>
                     <li class="breadcrumb-item active" aria-current="page"><?php echo htmlspecialchars($postData['title']); ?></li>
                 </ol>
             </nav>
@@ -1429,11 +2214,441 @@ include 'includes/head.php';
                 </div>
                 <?php endif; ?>
             </header>
+            
+            <!-- Floating Reading Progress Indicator -->
+            <?php if ($courseContext && $isLoggedIn): ?>
+            <div class="floating-progress-indicator" id="floatingProgress">
+                <div class="progress-container">
+                    <div class="progress-circle">
+                        <svg viewBox="0 0 36 36" class="progress-ring">
+                            <path class="progress-ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                            <path class="progress-ring-fill" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                        </svg>
+                        <div class="progress-text">
+                            <span class="progress-number">0%</span>
+                        </div>
+                    </div>
+                    <div class="progress-label">Reading Progress</div>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <!-- Post Content -->
             <article class="post-content mb-5">
                 <?php echo $renderedContent; ?>
             </article>
+            
+            <!-- Enhanced Course Navigation (if part of a course) -->
+            <?php if ($courseContext): ?>
+            <div class="course-navigation-section mb-5">
+                <!-- Course Hero Section -->
+                <div class="course-hero mb-4">
+                    <div class="course-hero-content">
+                        <div class="course-badge">
+                            <i class="fas fa-graduation-cap"></i>
+                            <span>Course Lesson</span>
+                        </div>
+                        <h4 class="course-title mb-2">
+                            <?php echo htmlspecialchars($courseContext['title']); ?>
+                        </h4>
+                        <p class="course-subtitle mb-3">
+                            <i class="fas fa-layer-group me-2"></i>
+                            Module: <?php echo htmlspecialchars($courseModuleInfo['title']); ?>
+                            <?php if ($userProgress): ?>
+                                <span class="lesson-number ms-2">
+                                    <i class="fas fa-play-circle me-1"></i>
+                                    Lesson <?php echo $userProgress['lesson_order'] ?? 'N/A'; ?>
+                                </span>
+                            <?php endif; ?>
+                        </p>
+                        
+                        <!-- Course Progress Overview -->
+                        <?php if ($isLoggedIn): ?>
+                            <?php
+                            // Get overall course progress
+                            $overallProgress = $course->getUserCourseProgress($user->getCurrentUser()['id'], $courseContext['id']);
+                            $totalLessons = count($overallProgress);
+                            $completedLessons = count(array_filter($overallProgress, function($p) { return $p['progress_percentage'] == 100; }));
+                            $overallPercentage = $totalLessons > 0 ? round(($completedLessons / $totalLessons) * 100) : 0;
+                            ?>
+                            <div class="course-progress-overview">
+                                <div class="progress-stats">
+                                    <div class="stat-item">
+                                        <span class="stat-number"><?php echo $completedLessons; ?></span>
+                                        <span class="stat-label">Completed</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-number"><?php echo $totalLessons; ?></span>
+                                        <span class="stat-label">Total Lessons</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-number"><?php echo $overallPercentage; ?>%</span>
+                                        <span class="stat-label">Course Progress</span>
+                                    </div>
+                                </div>
+                                <div class="overall-progress-bar">
+                                    <div class="progress" style="height: 10px;">
+                                        <div class="progress-bar bg-primary" style="width: <?php echo $overallPercentage; ?>%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <div class="course-hero-actions">
+                        <a href="course-view?course=<?php echo $courseContext['slug']; ?>" class="btn btn-outline-primary">
+                            <i class="fas fa-list me-1"></i>View Full Course
+                        </a>
+                        <?php if ($isLoggedIn): ?>
+                            <a href="profile" class="btn btn-outline-secondary">
+                                <i class="fas fa-user-graduate me-1"></i>My Progress
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                
+                <!-- Current Lesson Progress -->
+                <?php if ($userProgress): ?>
+                <div class="current-lesson-progress mb-4">
+                    <div class="progress-header">
+                        <h6 class="mb-2">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Current Lesson Progress
+                        </h6>
+                        <div class="progress-percentage">
+                            <span class="percentage-number"><?php echo $userProgress['progress_percentage']; ?>%</span>
+                            <span class="percentage-label">Complete</span>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-visual">
+                        <div class="progress" style="height: 12px;">
+                            <div class="progress-bar bg-success" 
+                                 style="width: <?php echo $userProgress['progress_percentage']; ?>%"
+                                 data-progress="<?php echo $userProgress['progress_percentage']; ?>">
+                            </div>
+                        </div>
+                        
+                        <?php if ($userProgress['completed_at']): ?>
+                            <div class="completion-celebration mt-3">
+                                <div class="celebration-content">
+                                    <i class="fas fa-trophy text-warning fa-2x mb-2"></i>
+                                    <h6 class="text-success mb-1">Lesson Completed!</h6>
+                                    <p class="text-muted mb-0">
+                                        Completed on <?php echo date('M j, Y', strtotime($userProgress['completed_at'])); ?>
+                                        <?php if ($userProgress['time_spent_minutes']): ?>
+                                            <br><small>Time spent: <?php echo $userProgress['time_spent_minutes']; ?> minutes</small>
+                                        <?php endif; ?>
+                                    </p>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+                
+                <!-- Learning Path Navigation -->
+                <div class="learning-path-navigation">
+                    <h6 class="mb-3">
+                        <i class="fas fa-route me-2"></i>
+                        Learning Path
+                    </h6>
+                    
+                    <div class="lesson-navigation">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <?php if ($prevLesson): ?>
+                                    <a href="post?slug=<?php echo $prevLesson['slug']; ?>" class="lesson-nav-btn prev-lesson">
+                                        <div class="nav-direction">
+                                            <i class="fas fa-chevron-left me-2"></i>Previous Lesson
+                                        </div>
+                                        <div class="nav-title"><?php echo htmlspecialchars($prevLesson['title']); ?></div>
+                                        <div class="nav-status">
+                                            <?php
+                                            $prevProgress = isset($overallProgress[$prevLesson['id']]) ? $overallProgress[$prevLesson['id']] : null;
+                                            if ($prevProgress && $prevProgress['progress_percentage'] == 100):
+                                            ?>
+                                                <span class="status-completed">
+                                                    <i class="fas fa-check-circle me-1"></i>Completed
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="status-available">
+                                                    <i class="fas fa-play-circle me-1"></i>Available
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                            <div class="col-md-6">
+                                <?php if ($nextLesson): ?>
+                                    <a href="post?slug=<?php echo $nextLesson['slug']; ?>" class="lesson-nav-btn next-lesson">
+                                        <div class="nav-direction">
+                                            Next Lesson<i class="fas fa-chevron-right ms-2"></i>
+                                        </div>
+                                        <div class="nav-title"><?php echo htmlspecialchars($nextLesson['title']); ?></div>
+                                        <div class="nav-status">
+                                            <?php
+                                            $nextProgress = isset($overallProgress[$nextLesson['id']]) ? $overallProgress[$nextLesson['id']] : null;
+                                            if ($nextProgress && $nextProgress['progress_percentage'] == 100):
+                                            ?>
+                                                <span class="status-completed">
+                                                    <i class="fas fa-check-circle me-1"></i>Completed
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="status-available">
+                                                    <i class="fas fa-play-circle me-1"></i>Available
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </a>
+                                <?php else: ?>
+                                    <div class="lesson-nav-btn next-lesson disabled">
+                                        <div class="nav-direction">
+                                            <i class="fas fa-trophy me-2"></i>Module Complete!
+                                        </div>
+                                        <div class="nav-title">Congratulations! You've finished this module.</div>
+                                        <div class="nav-status">
+                                            <span class="status-completed">
+                                                <i class="fas fa-star me-1"></i>All lessons completed
+                                            </span>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- Enhanced Lesson Materials Section -->
+            <?php if (!empty($lessonMaterials)): ?>
+            <div class="lesson-materials-section mb-5">
+                <div class="materials-header mb-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h5 class="mb-1">
+                                <i class="fas fa-file-download me-2"></i>
+                                Lesson Materials
+                                <span class="badge bg-primary ms-2"><?php echo count($lessonMaterials); ?></span>
+                            </h5>
+                            <p class="text-muted mb-0">Download additional resources to enhance your learning experience</p>
+                        </div>
+                        <div class="materials-summary">
+                            <div class="summary-item">
+                                <i class="fas fa-download text-primary"></i>
+                                <span class="summary-number"><?php echo array_sum(array_column($lessonMaterials, 'download_count')); ?></span>
+                                <span class="summary-label">Total Downloads</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <?php foreach ($lessonMaterials as $material): ?>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="material-card h-100">
+                                <div class="material-icon">
+                                    <?php
+                                    $iconClass = 'fa-file';
+                                    switch (strtolower($material['file_type'])) {
+                                        case 'pdf':
+                                            $iconClass = 'fa-file-pdf text-danger';
+                                            break;
+                                        case 'ppt':
+                                        case 'pptx':
+                                            $iconClass = 'fa-file-powerpoint text-warning';
+                                            break;
+                                        case 'doc':
+                                        case 'docx':
+                                            $iconClass = 'fa-file-word text-primary';
+                                            break;
+                                        case 'xls':
+                                        case 'xlsx':
+                                            $iconClass = 'fa-file-excel text-success';
+                                            break;
+                                        default:
+                                            $iconClass = 'fa-file-alt text-secondary';
+                                    }
+                                    ?>
+                                    <i class="fas <?php echo $iconClass; ?> fa-3x"></i>
+                                </div>
+                                
+                                <div class="material-content">
+                                    <div class="material-header">
+                                        <h6 class="material-title"><?php echo htmlspecialchars($material['title']); ?></h6>
+                                        <?php if ($material['order_index'] > 0): ?>
+                                            <span class="material-order-badge">
+                                                <i class="fas fa-sort-numeric-up me-1"></i>
+                                                #<?php echo $material['order_index']; ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                    
+                                    <p class="material-description"><?php echo htmlspecialchars($material['description']); ?></p>
+                                    
+                                    <!-- Progressive Learning Indicators -->
+                                    <?php if ($material['required_lesson_id'] || $material['related_lesson_id']): ?>
+                                        <div class="learning-indicators mt-2">
+                                            <?php if ($material['required_lesson_id']): ?>
+                                                <span class="indicator-badge requirement">
+                                                    <i class="fas fa-lock me-1"></i>
+                                                    Requires Lesson Completion
+                                                </span>
+                                            <?php endif; ?>
+                                            <?php if ($material['related_lesson_id']): ?>
+                                                <span class="indicator-badge related">
+                                                    <i class="fas fa-link me-1"></i>
+                                                    Related to Lesson
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <div class="material-meta">
+                                        <div class="meta-row">
+                                            <small class="text-muted">
+                                                <i class="fas fa-download me-1"></i>
+                                                <?php echo number_format($material['download_count']); ?> downloads
+                                            </small>
+                                            <small class="text-muted ms-3">
+                                                <i class="fas fa-hdd me-1"></i>
+                                                <?php echo number_format($material['file_size'] / 1024, 1); ?> KB
+                                            </small>
+                                        </div>
+                                        
+                                        <?php if ($material['is_active'] == 0): ?>
+                                            <div class="material-status mt-2">
+                                                <span class="status-badge inactive">
+                                                    <i class="fas fa-eye-slash me-1"></i>Inactive
+                                                </span>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    
+                                    <?php if ($isLoggedIn && isset($material['user_download_count']) && $material['user_download_count'] > 0): ?>
+                                        <div class="user-download-info mt-2">
+                                            <small class="text-success">
+                                                <i class="fas fa-check-circle me-1"></i>
+                                                Downloaded <?php echo $material['user_download_count']; ?> time<?php echo $material['user_download_count'] > 1 ? 's' : ''; ?>
+                                            </small>
+                                            <?php if (isset($material['last_downloaded'])): ?>
+                                                <br><small class="text-muted">
+                                                    Last: <?php echo date('M j, Y', strtotime($material['last_downloaded'])); ?>
+                                                </small>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <div class="material-footer">
+                                    <?php if ($isLoggedIn): ?>
+                                        <a href="download-material?id=<?php echo $material['id']; ?>" 
+                                           class="btn btn-primary btn-sm w-100">
+                                            <i class="fas fa-download me-1"></i>Download
+                                        </a>
+                                    <?php else: ?>
+                                        <button class="btn btn-outline-secondary btn-sm w-100" 
+                                                onclick="showLoginModal()">
+                                            <i class="fas fa-lock me-1"></i>Login to Download
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- Course Recommendations & Next Steps -->
+            <?php if ($courseContext && $isLoggedIn): ?>
+            <div class="course-recommendations-section mb-5">
+                <div class="recommendations-header mb-4">
+                    <h5 class="mb-2">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Recommended Next Steps
+                    </h5>
+                    <p class="text-muted mb-0">Based on your learning progress, here are some suggestions</p>
+                </div>
+                
+                <div class="recommendations-content">
+                    <div class="row">
+                        <!-- Next Lesson Recommendation -->
+                        <?php if ($nextLesson): ?>
+                        <div class="col-md-6 mb-3">
+                            <div class="recommendation-card next-lesson-card">
+                                <div class="card-icon">
+                                    <i class="fas fa-arrow-right text-primary"></i>
+                                </div>
+                                <div class="card-content">
+                                    <h6 class="card-title">Continue Learning</h6>
+                                    <p class="card-text">Move to the next lesson to keep your momentum going</p>
+                                    <a href="post?slug=<?php echo $nextLesson['slug']; ?>" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-play me-1"></i>Start Next Lesson
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <!-- Course Completion -->
+                        <?php if (!$nextLesson && $overallPercentage >= 80): ?>
+                        <div class="col-md-6 mb-3">
+                            <div class="recommendation-card completion-card">
+                                <div class="card-icon">
+                                    <i class="fas fa-trophy text-warning"></i>
+                                </div>
+                                <div class="card-content">
+                                    <h6 class="card-title">Course Completion</h6>
+                                    <p class="card-text">You're almost done! Complete the remaining lessons</p>
+                                    <a href="course-view?course=<?php echo $courseContext['slug']; ?>" class="btn btn-warning btn-sm">
+                                        <i class="fas fa-flag-checkered me-1"></i>View Course
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <!-- Related Materials -->
+                        <?php if (!empty($lessonMaterials)): ?>
+                        <div class="col-md-6 mb-3">
+                            <div class="recommendation-card materials-card">
+                                <div class="card-icon">
+                                    <i class="fas fa-file-alt text-success"></i>
+                                </div>
+                                <div class="card-content">
+                                    <h6 class="card-title">Download Materials</h6>
+                                    <p class="card-text">Get additional resources to reinforce your learning</p>
+                                    <span class="materials-count">
+                                        <i class="fas fa-download me-1"></i>
+                                        <?php echo count($lessonMaterials); ?> materials available
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <!-- Profile Progress -->
+                        <div class="col-md-6 mb-3">
+                            <div class="recommendation-card profile-card">
+                                <div class="card-icon">
+                                    <i class="fas fa-chart-line text-info"></i>
+                                </div>
+                                <div class="card-content">
+                                    <h6 class="card-title">Track Progress</h6>
+                                    <p class="card-text">Monitor your learning journey and achievements</p>
+                                    <a href="profile" class="btn btn-info btn-sm">
+                                        <i class="fas fa-user-graduate me-1"></i>View Profile
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <!-- Post Actions -->
             <div class="post-actions mb-5">
@@ -1876,6 +3091,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set up reading progress updates
     window.addEventListener('scroll', updateReadingProgress);
     updateReadingProgress(); // Initial call
+    
+    // Initialize course progress tracking if user is logged in
+    <?php if ($isLoggedIn): ?>
+    initProgressTracking();
+    <?php endif; ?>
     
     // Initialize voting and bookmark functionality
     console.log('Initializing voting and bookmark functionality...');
@@ -2743,6 +3963,162 @@ function addPrintStyles() {
     `;
     document.head.appendChild(style);
 }
+
+// Course Progress Tracking
+function initProgressTracking() {
+    const postId = <?php echo $postData['id']; ?>;
+    const courseModuleId = <?php echo $postData['course_module_id'] ?? 'null'; ?>;
+    
+    if (!courseModuleId) {
+        return; // Not part of a course
+    }
+    
+    let startTime = Date.now();
+    let progressPercentage = 0;
+    let trackingInterval;
+    
+    // Track when user starts reading
+    trackProgress('start_lesson', postId, 0, 0);
+    
+    // Track progress based on scroll position
+    function updateProgress() {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const currentProgress = Math.min(Math.round((scrollTop / scrollHeight) * 100), 100);
+        
+        // Update floating progress indicator
+        updateFloatingProgress(currentProgress);
+        
+        if (currentProgress > progressPercentage && currentProgress >= 25) {
+            progressPercentage = currentProgress;
+            const timeSpent = Math.round((Date.now() - startTime) / (1000 * 60)); // Convert to minutes
+            trackProgress('update_progress', postId, progressPercentage, timeSpent);
+        }
+        
+        // Auto-complete when user reaches 90% or more
+        if (currentProgress >= 90) {
+            const timeSpent = Math.round((Date.now() - startTime) / (1000 * 60));
+            trackProgress('complete_lesson', postId, 100, timeSpent);
+            clearInterval(trackingInterval);
+            showCompletionMessage();
+        }
+    }
+    
+    // Track progress every few seconds
+    trackingInterval = setInterval(updateProgress, 3000);
+    
+    // Also track on scroll for immediate feedback
+    window.addEventListener('scroll', debounce(updateProgress, 1000));
+    
+    // Track when user leaves the page
+    window.addEventListener('beforeunload', function() {
+        const timeSpent = Math.round((Date.now() - startTime) / (1000 * 60));
+        if (progressPercentage > 0) {
+            trackProgress('update_progress', postId, progressPercentage, timeSpent);
+        }
+    });
+}
+
+function trackProgress(action, postId, progressPercentage, timeSpent) {
+    if (!postId) return;
+    
+    fetch('api/track-progress', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            action: action,
+            post_id: postId,
+            progress_percentage: progressPercentage,
+            time_spent: timeSpent
+        })
+    }).catch(error => {
+        console.error('Progress tracking error:', error);
+    });
+}
+
+function showCompletionMessage() {
+    // Create completion toast
+    const toast = document.createElement('div');
+    toast.className = 'alert alert-success alert-dismissible fade show position-fixed';
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 350px; max-width: 400px;';
+    toast.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="fas fa-check-circle me-2"></i>
+            <div>
+                <strong>Lesson Completed!</strong>
+                <br><small>Great job! Your progress has been saved.</small>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.remove();
+        }
+    }, 5000);
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Update floating progress indicator
+function updateFloatingProgress(progress) {
+    const floatingProgress = document.getElementById('floatingProgress');
+    if (!floatingProgress) return;
+    
+    // Update progress number
+    const progressNumber = floatingProgress.querySelector('.progress-number');
+    if (progressNumber) {
+        progressNumber.textContent = progress + '%';
+    }
+    
+    // Update progress ring
+    const progressRing = floatingProgress.querySelector('.progress-ring-fill');
+    if (progressRing) {
+        const circumference = 2 * Math.PI * 15.9155; // Based on SVG radius
+        const offset = circumference - (progress / 100) * circumference;
+        progressRing.style.strokeDashoffset = offset;
+    }
+    
+    // Change color based on progress
+    if (progress >= 90) {
+        progressRing.style.stroke = '#28a745'; // Green for completion
+        progressNumber.style.color = '#28a745';
+    } else if (progress >= 50) {
+        progressRing.style.stroke = '#ffc107'; // Yellow for halfway
+        progressNumber.style.color = '#ffc107';
+    } else {
+        progressRing.style.stroke = '#007bff'; // Blue for early progress
+        progressNumber.style.color = '#007bff';
+    }
+}
+
+// Initialize floating progress on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const floatingProgress = document.getElementById('floatingProgress');
+    if (floatingProgress) {
+        // Show the indicator after a short delay
+        setTimeout(() => {
+            floatingProgress.style.opacity = '1';
+            floatingProgress.style.transform = 'scale(1)';
+        }, 1000);
+    }
+});
 
 
 </script> 

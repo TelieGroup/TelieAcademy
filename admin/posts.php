@@ -4,11 +4,13 @@ require_once '../includes/User.php';
 require_once '../includes/Post.php';
 require_once '../includes/Category.php';
 require_once '../includes/Tag.php'; // Added Tag.php
+require_once '../includes/Course.php';
 
 $user = new User();
 $post = new Post();
 $category = new Category();
 $tag = new Tag(); // Added Tag object
+$course = new Course();
 
 // Check if user is logged in and is admin
 if (!$user->isLoggedIn()) {
@@ -40,6 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $excerpt = $_POST['excerpt'] ?? '';
             $content = $_POST['content'] ?? '';
             $categoryId = $_POST['category_id'] ?? '';
+            $courseModuleId = !empty($_POST['course_module_id']) ? $_POST['course_module_id'] : null;
+            $lessonOrder = $_POST['lesson_order'] ?? 1;
             $status = $_POST['status'] ?? 'draft';
             $isPremium = isset($_POST['is_premium']) ? 1 : 0;
             $isFeatured = isset($_POST['is_featured']) ? 1 : 0;
@@ -65,6 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'excerpt' => $excerpt,
                 'content' => $content,
                 'category_id' => $categoryId,
+                'course_module_id' => $courseModuleId,
+                'lesson_order' => $lessonOrder,
                 'status' => $status,
                 'is_premium' => $isPremium,
                 'is_featured' => $isFeatured,
@@ -111,6 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $excerpt = $_POST['excerpt'] ?? '';
             $content = $_POST['content'] ?? '';
             $categoryId = $_POST['category_id'] ?? '';
+            $courseModuleId = !empty($_POST['course_module_id']) ? $_POST['course_module_id'] : null;
+            $lessonOrder = $_POST['lesson_order'] ?? 1;
             $status = $_POST['status'] ?? 'draft';
             $isPremium = isset($_POST['is_premium']) ? 1 : 0;
             $isFeatured = isset($_POST['is_featured']) ? 1 : 0;
@@ -135,6 +143,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'excerpt' => $excerpt,
                 'content' => $content,
                 'category_id' => $categoryId,
+                'course_module_id' => $courseModuleId,
+                'lesson_order' => $lessonOrder,
                 'status' => $status,
                 'is_premium' => $isPremium,
                 'is_featured' => $isFeatured,
@@ -233,6 +243,7 @@ include '../includes/head.php';
                         <tr>
                             <th>Title</th>
                             <th>Category</th>
+                            <th>Course/Module</th>
                             <th>Status</th>
                             <th>Views</th>
                             <th>Date</th>
@@ -242,7 +253,7 @@ include '../includes/head.php';
                     <tbody>
                         <?php if (empty($allPosts)): ?>
                         <tr>
-                            <td colspan="6" class="text-center text-muted">
+                            <td colspan="7" class="text-center text-muted">
                                 <i class="fas fa-inbox fa-2x mb-2"></i>
                                 <p>No posts found. <a href="posts?action=add">Create your first post</a></p>
                             </td>
@@ -260,6 +271,38 @@ include '../includes/head.php';
                                 <?php endif; ?>
                             </td>
                             <td><?php echo htmlspecialchars($postItem['category_name'] ?? 'Uncategorized'); ?></td>
+                            <td>
+                                <?php if (isset($postItem['course_module_id']) && $postItem['course_module_id']): ?>
+                                    <?php 
+                                    $moduleInfo = $course->getModuleById($postItem['course_module_id']);
+                                    if ($moduleInfo):
+                                        $courseInfo = $course->getCourseById($moduleInfo['course_id']);
+                                    ?>
+                                        <div class="course-info">
+                                            <small class="text-primary fw-bold">
+                                                <i class="fas fa-graduation-cap me-1"></i>
+                                                <?php echo htmlspecialchars($courseInfo['title']); ?>
+                                            </small>
+                                            <br>
+                                            <small class="text-muted">
+                                                <i class="fas fa-book me-1"></i>
+                                                <?php echo htmlspecialchars($moduleInfo['title']); ?>
+                                            </small>
+                                            <?php if (isset($postItem['lesson_order']) && $postItem['lesson_order']): ?>
+                                                <br>
+                                                <small class="badge bg-secondary">
+                                                    Lesson #<?php echo $postItem['lesson_order']; ?>
+                                                </small>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <span class="text-muted">
+                                        <i class="fas fa-minus me-1"></i>
+                                        Not in course
+                                    </span>
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <?php if ($postItem['status'] === 'published'): ?>
                                     <span class="badge bg-success">Published</span>
@@ -550,6 +593,47 @@ include '../includes/head.php';
                                     <div class="form-text">
                                         <i class="fas fa-info-circle me-1"></i>Choose the most appropriate category for your post
                                     </div>
+                        </div>
+
+                        <!-- Course Module Selection -->
+                        <div class="mb-4">
+                            <label for="new_course_module_id" class="form-label fw-bold">
+                                <i class="fas fa-graduation-cap me-1"></i>Course Module (Optional)
+                            </label>
+                            <select class="form-select" id="new_course_module_id" name="course_module_id">
+                                <option value="">Not part of a course</option>
+                                <?php
+                                // Get all courses with modules
+                                $allCourses = $course->getAllCourses(true);
+                                foreach ($allCourses as $courseItem):
+                                    $modules = $course->getModulesByCourse($courseItem['id'], true);
+                                    if (!empty($modules)):
+                                ?>
+                                    <optgroup label="<?php echo htmlspecialchars($courseItem['title']); ?>">
+                                        <?php foreach ($modules as $module): ?>
+                                            <option value="<?php echo $module['id']; ?>">
+                                                <?php echo htmlspecialchars($module['title']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </optgroup>
+                                <?php 
+                                    endif;
+                                endforeach; 
+                                ?>
+                            </select>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Link this post to a course module for progressive learning
+                            </div>
+                        </div>
+
+                        <div class="mb-4" id="new-lesson-order-container" style="display: none;">
+                            <label for="new_lesson_order" class="form-label fw-bold">
+                                <i class="fas fa-sort-numeric-up me-1"></i>Lesson Order
+                            </label>
+                            <input type="number" class="form-control" id="new_lesson_order" name="lesson_order" 
+                                   value="1" min="1" max="100">
+                            <div class="form-text">Order of this lesson within the module (1 = first lesson)</div>
                         </div>
 
                                 <div class="mb-4">
@@ -1188,6 +1272,49 @@ include '../includes/head.php';
                                 </option>
                                 <?php endforeach; ?>
                             </select>
+                        </div>
+
+                        <!-- Course Module Selection -->
+                        <div class="mb-3">
+                            <label for="course_module_id" class="form-label">
+                                <i class="fas fa-graduation-cap me-1"></i>Course Module (Optional)
+                            </label>
+                            <select class="form-select" id="course_module_id" name="course_module_id">
+                                <option value="">Not part of a course</option>
+                                <?php
+                                // Get all courses with modules
+                                $allCourses = $course->getAllCourses(true);
+                                foreach ($allCourses as $courseItem):
+                                    $modules = $course->getModulesByCourse($courseItem['id'], true);
+                                    if (!empty($modules)):
+                                ?>
+                                    <optgroup label="<?php echo htmlspecialchars($courseItem['title']); ?>">
+                                        <?php foreach ($modules as $module): ?>
+                                            <option value="<?php echo $module['id']; ?>" 
+                                                    <?php echo (isset($postData['course_module_id']) && $module['id'] == $postData['course_module_id']) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($module['title']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </optgroup>
+                                <?php 
+                                    endif;
+                                endforeach; 
+                                ?>
+                            </select>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Link this post to a course module for progressive learning
+                            </div>
+                        </div>
+
+                        <div class="mb-3" id="lesson-order-container" style="display: none;">
+                            <label for="lesson_order" class="form-label">
+                                <i class="fas fa-sort-numeric-up me-1"></i>Lesson Order
+                            </label>
+                            <input type="number" class="form-control" id="lesson_order" name="lesson_order" 
+                                   value="<?php echo isset($postData['lesson_order']) ? $postData['lesson_order'] : 1; ?>" 
+                                   min="1" max="100">
+                            <div class="form-text">Order of this lesson within the module (1 = first lesson)</div>
                         </div>
 
                         <div class="mb-3">
@@ -2790,6 +2917,47 @@ function selectMedia(filePath, fileName, altText) {
         modal.hide();
     }
 }
+
+// Course module selection handlers
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle course module selection for add form
+    const newCourseSelect = document.getElementById('new_course_module_id');
+    const newLessonOrderContainer = document.getElementById('new-lesson-order-container');
+    
+    if (newCourseSelect && newLessonOrderContainer) {
+        newCourseSelect.addEventListener('change', function() {
+            if (this.value) {
+                newLessonOrderContainer.style.display = 'block';
+            } else {
+                newLessonOrderContainer.style.display = 'none';
+            }
+        });
+        
+        // Show/hide on page load
+        if (newCourseSelect.value) {
+            newLessonOrderContainer.style.display = 'block';
+        }
+    }
+    
+    // Handle course module selection for edit form
+    const editCourseSelect = document.getElementById('course_module_id');
+    const editLessonOrderContainer = document.getElementById('lesson-order-container');
+    
+    if (editCourseSelect && editLessonOrderContainer) {
+        editCourseSelect.addEventListener('change', function() {
+            if (this.value) {
+                editLessonOrderContainer.style.display = 'block';
+            } else {
+                editLessonOrderContainer.style.display = 'none';
+            }
+        });
+        
+        // Show/hide on page load
+        if (editCourseSelect.value) {
+            editLessonOrderContainer.style.display = 'block';
+        }
+    }
+});
 
 </script>
 

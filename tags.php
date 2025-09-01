@@ -2,11 +2,16 @@
 require_once 'includes/Post.php';
 require_once 'includes/Tag.php';
 require_once 'includes/User.php';
+require_once 'includes/Course.php';
 
 $post = new Post();
 $tag = new Tag();
 $user = new User();
+$course = new Course();
 
+// Check if user is logged in and premium
+$isLoggedIn = $user->isLoggedIn();
+$currentUser = $isLoggedIn ? $user->getCurrentUser() : null;
 $isPremium = $user->isPremium();
 $selectedTag = isset($_GET['tag']) ? $_GET['tag'] : '';
 $allTags = $tag->getAllTags();
@@ -18,6 +23,31 @@ if ($selectedTag) {
 } else {
     $posts = $post->getAllPosts(null, 0, $isPremium);
     $currentTag = null;
+}
+
+// Enhance posts with course information
+if ($isLoggedIn && !empty($posts)) {
+    foreach ($posts as &$postItem) {
+        if (!empty($postItem['course_module_id'])) {
+            // Get course context
+            $moduleInfo = $course->getModuleById($postItem['course_module_id']);
+            if ($moduleInfo) {
+                $courseInfo = $course->getCourseById($moduleInfo['course_id']);
+                $postItem['course_context'] = $courseInfo;
+                $postItem['module_info'] = $moduleInfo;
+                
+                // Get user progress for this post
+                $userProgress = $course->getUserCourseProgress($currentUser['id'], $courseInfo['id']);
+                $postItem['user_progress'] = isset($userProgress[$postItem['id']]) ? $userProgress[$postItem['id']] : null;
+            }
+        }
+    }
+}
+
+// Get available courses for this tag
+$availableCourses = [];
+if ($selectedTag && $isLoggedIn) {
+    $availableCourses = $course->getCoursesWithPostsInTag($selectedTag, $currentUser['id']);
 }
 
 // Set page variables for head component
@@ -89,6 +119,19 @@ include 'includes/head.php';
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <span class="badge bg-primary"><?php echo htmlspecialchars($post['category_name']); ?></span>
+                                
+                                <!-- Course Badges -->
+                                <?php if (isset($post['course_context'])): ?>
+                                    <span class="course-badge-modern">
+                                        <i class="fas fa-graduation-cap me-1"></i>
+                                        <?php echo htmlspecialchars($post['course_context']['title']); ?>
+                                    </span>
+                                    <span class="module-badge-modern">
+                                        <i class="fas fa-layer-group me-1"></i>
+                                        <?php echo htmlspecialchars($post['module_info']['title']); ?>
+                                    </span>
+                                <?php endif; ?>
+                                
                                 <?php if ($post['is_premium']): ?>
                                 <span class="badge bg-warning text-dark">
                                     <i class="fas fa-crown me-1"></i>Premium

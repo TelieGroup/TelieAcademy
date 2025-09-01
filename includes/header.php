@@ -53,19 +53,42 @@ if (!empty($authError)) {
         
         <div class="collapse navbar-collapse" id="navbarNav">
             <!-- Main Navigation Links -->
-            <div class="navbar-nav me-auto mb-2 mb-lg-0">
-                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../index' : 'index'; ?>">Home</a>
-                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'categories.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../categories' : 'categories'; ?>">Categories</a>
-                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'posts.php' ? 'active' : ''; ?>" href="<?php echo basename($_SERVER['PHP_SELF']) == 'posts.php' ? '#' : (strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../posts' : 'posts'); ?>">All Posts</a>
-                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'tags.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../tags' : 'tags'; ?>">Tags</a>
-                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'courses.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../courses' : 'courses'; ?>">
-                    <i class="fas fa-graduation-cap me-1"></i>Course Materials
-                </a>
-
-                <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'contact-us.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../contact-us' : 'contact-us'; ?>">
-                    <i class="fas fa-envelope me-1"></i>Contact Us
-                </a>
-            </div>
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../index' : 'index'; ?>">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'categories.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../categories' : 'categories'; ?>">Categories</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'posts.php' ? 'active' : ''; ?>" href="<?php echo basename($_SERVER['PHP_SELF']) == 'posts.php' ? '#' : (strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../posts' : 'posts'); ?>">All Posts</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'tags.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../tags' : 'tags'; ?>">Tags</a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle <?php echo (basename($_SERVER['PHP_SELF']) == 'courses.php' || basename($_SERVER['PHP_SELF']) == 'course-view.php') ? 'active' : ''; ?>" href="#" id="coursesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-graduation-cap me-1"></i>Courses
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="coursesDropdown">
+                        <li><a class="dropdown-item" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../courses' : 'courses'; ?>">
+                            <i class="fas fa-list me-2"></i>All Courses
+                        </a></li>
+                        <li><a class="dropdown-item" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../course-view?course=javascript-learning-journey' : 'course-view?course=javascript-learning-journey'; ?>">
+                            <i class="fas fa-code me-2"></i>JavaScript Journey
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../courses' : 'courses'; ?>">
+                            <i class="fas fa-download me-2"></i>Course Materials
+                        </a></li>
+                    </ul>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'contact-us.php' ? 'active' : ''; ?>" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../contact-us' : 'contact-us'; ?>">
+                        <i class="fas fa-envelope me-1"></i>Contact Us
+                    </a>
+                </li>
+            </ul>
             
 
             

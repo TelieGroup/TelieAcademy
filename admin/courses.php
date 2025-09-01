@@ -10,6 +10,68 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['is_admin']) || !$_SESSION[
 
 $course = new Course();
 
+// Get comprehensive course analytics
+$courseAnalytics = [
+    'total_enrollments' => 0,
+    'active_learners' => 0,
+    'completion_rate' => 0,
+    'popular_courses' => [],
+    'recent_enrollments' => []
+];
+
+try {
+    // Get all courses with enrollment and progress data
+    $allCourses = $course->getAllCourses(true);
+    $totalEnrollments = 0;
+    $totalCompletions = 0;
+    $activeLearners = 0;
+    
+    foreach ($allCourses as $courseItem) {
+        // Get enrollments for this course
+        $enrollments = $course->getCourseEnrollments($courseItem['id']);
+        $completions = 0;
+        $activeInLast30Days = 0;
+        
+        foreach ($enrollments as $enrollment) {
+            $totalEnrollments++;
+            if ($enrollment['completed_at']) {
+                $completions++;
+                $totalCompletions++;
+            }
+            
+            // Check if user was active in last 30 days
+            $lastActivityDate = strtotime($enrollment['last_activity'] ?? $enrollment['enrolled_at']);
+            if ($lastActivityDate > strtotime('-30 days')) {
+                $activeInLast30Days++;
+                $activeLearners++;
+            }
+        }
+        
+        // Store course analytics
+        $courseItem['enrollments_count'] = count($enrollments);
+        $courseItem['completions_count'] = $completions;
+        $courseItem['completion_rate'] = count($enrollments) > 0 ? round(($completions / count($enrollments)) * 100, 1) : 0;
+        $courseItem['active_learners'] = $activeInLast30Days;
+        
+        $courseAnalytics['popular_courses'][] = $courseItem;
+    }
+    
+    // Sort by popularity (enrollment count)
+    usort($courseAnalytics['popular_courses'], function($a, $b) {
+        return $b['enrollments_count'] - $a['enrollments_count'];
+    });
+    
+    $courseAnalytics['total_enrollments'] = $totalEnrollments;
+    $courseAnalytics['active_learners'] = $activeLearners;
+    $courseAnalytics['completion_rate'] = $totalEnrollments > 0 ? round(($totalCompletions / $totalEnrollments) * 100, 1) : 0;
+    
+    // Get recent enrollments
+    $courseAnalytics['recent_enrollments'] = $course->getRecentEnrollments(10);
+    
+} catch (Exception $e) {
+    error_log("Course analytics error: " . $e->getMessage());
+}
+
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -288,6 +350,92 @@ include '../includes/head.php';
 <!-- Admin CSS -->
 <link rel="stylesheet" href="admin.css">
 
+<style>
+/* Course Analytics Styles */
+.analytics-card {
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.analytics-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.analytics-card .card-body {
+    padding: 1.5rem;
+}
+
+.analytics-card h4 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.recent-activity .activity-item:last-child {
+    border-bottom: none !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.border-primary {
+    border-left: 4px solid #007bff !important;
+}
+
+.border-success {
+    border-left: 4px solid #28a745 !important;
+}
+
+.border-warning {
+    border-left: 4px solid #ffc107 !important;
+}
+
+.border-info {
+    border-left: 4px solid #17a2b8 !important;
+}
+
+/* Course table enhancements */
+.course-thumbnail {
+    border-radius: 8px;
+    transition: transform 0.2s ease;
+}
+
+.course-thumbnail:hover {
+    transform: scale(1.05);
+}
+
+/* Progress indicators */
+.progress-mini {
+    height: 6px;
+    border-radius: 10px;
+}
+
+.course-stats {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.course-stats .badge {
+    font-size: 0.75rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .analytics-card h4 {
+        font-size: 1.5rem;
+    }
+    
+    .analytics-card .card-body {
+        padding: 1rem;
+    }
+    
+    .recent-activity .activity-item {
+        margin-bottom: 1rem;
+    }
+}
+</style>
+
 <div class="container-fluid mt-5 pt-5">
     <div class="row">
         <!-- Sidebar -->
@@ -321,6 +469,133 @@ include '../includes/head.php';
                 </button>
             </div>
 
+            <!-- Course Analytics Dashboard -->
+            <div class="row mb-4">
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card analytics-card border-primary">
+                        <div class="card-body text-center">
+                            <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                            <h4 class="card-title"><?php echo number_format($courseAnalytics['total_enrollments']); ?></h4>
+                            <p class="card-text text-muted">Total Enrollments</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card analytics-card border-success">
+                        <div class="card-body text-center">
+                            <i class="fas fa-user-clock fa-2x text-success mb-2"></i>
+                            <h4 class="card-title"><?php echo number_format($courseAnalytics['active_learners']); ?></h4>
+                            <p class="card-text text-muted">Active Learners (30d)</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card analytics-card border-warning">
+                        <div class="card-body text-center">
+                            <i class="fas fa-chart-line fa-2x text-warning mb-2"></i>
+                            <h4 class="card-title"><?php echo $courseAnalytics['completion_rate']; ?>%</h4>
+                            <p class="card-text text-muted">Completion Rate</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card analytics-card border-info">
+                        <div class="card-body text-center">
+                            <i class="fas fa-graduation-cap fa-2x text-info mb-2"></i>
+                            <h4 class="card-title"><?php echo count($courseAnalytics['popular_courses']); ?></h4>
+                            <p class="card-text text-muted">Total Courses</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Popular Courses & Recent Activity -->
+            <div class="row mb-4">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-trophy me-2"></i>Popular Courses
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <?php if (!empty($courseAnalytics['popular_courses'])): ?>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Course</th>
+                                                <th>Enrollments</th>
+                                                <th>Completions</th>
+                                                <th>Rate</th>
+                                                <th>Active</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach (array_slice($courseAnalytics['popular_courses'], 0, 5) as $popularCourse): ?>
+                                                <tr>
+                                                    <td>
+                                                        <strong><?php echo htmlspecialchars($popularCourse['title']); ?></strong>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-primary"><?php echo $popularCourse['enrollments_count']; ?></span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-success"><?php echo $popularCourse['completions_count']; ?></span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-warning text-dark"><?php echo $popularCourse['completion_rate']; ?>%</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-info"><?php echo $popularCourse['active_learners']; ?></span>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <?php else: ?>
+                                <p class="text-muted text-center py-3">No enrollment data available yet.</p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-clock me-2"></i>Recent Enrollments
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <?php if (!empty($courseAnalytics['recent_enrollments'])): ?>
+                                <div class="recent-activity">
+                                    <?php foreach ($courseAnalytics['recent_enrollments'] as $enrollment): ?>
+                                        <div class="activity-item mb-3 pb-2 border-bottom">
+                                            <div class="d-flex align-items-start">
+                                                <i class="fas fa-user-graduate text-primary me-2 mt-1"></i>
+                                                <div class="flex-grow-1">
+                                                    <p class="mb-1">
+                                                        <strong><?php echo htmlspecialchars($enrollment['username']); ?></strong>
+                                                        enrolled in
+                                                        <span class="text-primary"><?php echo htmlspecialchars($enrollment['course_title']); ?></span>
+                                                    </p>
+                                                    <small class="text-muted">
+                                                        <?php echo date('M j, Y g:i A', strtotime($enrollment['enrolled_at'])); ?>
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php else: ?>
+                                <p class="text-muted text-center py-3">No recent enrollments.</p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <?php if (isset($successMessage)): ?>
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                     <i class="fas fa-check-circle me-2"></i><?php echo $successMessage; ?>
@@ -335,69 +610,7 @@ include '../includes/head.php';
                 </div>
             <?php endif; ?>
 
-            <!-- Statistics Cards -->
-            <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="card bg-primary text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h4 class="mb-0"><?php echo $courseStats['total_courses'] ?? 0; ?></h4>
-                                    <p class="mb-0">Total Courses</p>
-                                </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-graduation-cap fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-success text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h4 class="mb-0"><?php echo $courseStats['total_modules'] ?? 0; ?></h4>
-                                    <p class="mb-0">Total Modules</p>
-                                </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-book fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-info text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h4 class="mb-0"><?php echo $courseStats['total_materials'] ?? 0; ?></h4>
-                                    <p class="mb-0">Total Materials</p>
-                                </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-file-alt fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-warning text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h4 class="mb-0"><?php echo $courseStats['total_downloads'] ?? 0; ?></h4>
-                                    <p class="mb-0">Total Downloads</p>
-                                </div>
-                                <div class="align-self-center">
-                                    <i class="fas fa-download fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
 
             <!-- Courses List -->
             <div class="card">
@@ -420,6 +633,8 @@ include '../includes/head.php';
                                         <th>Cover</th>
                                         <th>Title</th>
                                         <th>Description</th>
+                                        <th>Enrollments</th>
+                                        <th>Completion Rate</th>
                                         <th>Status</th>
                                         <th>Created</th>
                                         <th>Actions</th>
@@ -446,6 +661,36 @@ include '../includes/head.php';
                                                 <br><small class="text-muted"><?php echo htmlspecialchars($courseItem['slug']); ?></small>
                                             </td>
                                             <td><?php echo htmlspecialchars(substr($courseItem['description'], 0, 100)) . (strlen($courseItem['description']) > 100 ? '...' : ''); ?></td>
+                                            <td>
+                                                <?php 
+                                                // Find this course in analytics data
+                                                $courseAnalyticsData = null;
+                                                foreach ($courseAnalytics['popular_courses'] as $analyticsItem) {
+                                                    if ($analyticsItem['id'] == $courseItem['id']) {
+                                                        $courseAnalyticsData = $analyticsItem;
+                                                        break;
+                                                    }
+                                                }
+                                                $enrollmentCount = $courseAnalyticsData ? $courseAnalyticsData['enrollments_count'] : 0;
+                                                $activeCount = $courseAnalyticsData ? $courseAnalyticsData['active_learners'] : 0;
+                                                ?>
+                                                <div class="course-stats">
+                                                    <span class="badge bg-primary"><?php echo $enrollmentCount; ?> total</span>
+                                                    <span class="badge bg-success"><?php echo $activeCount; ?> active</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <?php 
+                                                $completionRate = $courseAnalyticsData ? $courseAnalyticsData['completion_rate'] : 0;
+                                                $completionCount = $courseAnalyticsData ? $courseAnalyticsData['completions_count'] : 0;
+                                                ?>
+                                                <div class="text-center">
+                                                    <div class="progress progress-mini mb-1">
+                                                        <div class="progress-bar bg-success" style="width: <?php echo $completionRate; ?>%"></div>
+                                                    </div>
+                                                    <small class="text-muted"><?php echo $completionRate; ?>% (<?php echo $completionCount; ?> completed)</small>
+                                                </div>
+                                            </td>
                                                                                                 <td>
                                                         <span class="badge <?php echo $courseItem['is_active'] ? 'bg-success' : 'bg-secondary'; ?>">
                                                             <?php echo $courseItem['is_active'] ? 'Active' : 'Inactive'; ?>
@@ -459,6 +704,9 @@ include '../includes/head.php';
                                                        class="btn btn-outline-primary" title="Manage Modules">
                                                         <i class="fas fa-book"></i>
                                                     </a>
+                                                    <button class="btn btn-outline-warning" onclick="viewCourseAnalytics(<?php echo $courseItem['id']; ?>, '<?php echo htmlspecialchars($courseItem['title']); ?>')" title="View Analytics">
+                                                        <i class="fas fa-chart-bar"></i>
+                                                    </button>
                                                     <button class="btn btn-outline-info" onclick="editCourse(<?php echo $courseItem['id']; ?>, '<?php echo htmlspecialchars($courseItem['title']); ?>', '<?php echo htmlspecialchars($courseItem['description']); ?>', <?php echo $courseItem['is_active'] ? 'true' : 'false'; ?>, '<?php echo htmlspecialchars($courseItem['thumbnail'] ?? ''); ?>')" title="Edit Course">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
@@ -709,6 +957,155 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize edit and delete functionality
     initializeCourseActions();
 });
+
+// View course analytics function
+function viewCourseAnalytics(courseId, courseTitle) {
+    // Create a modal to show detailed course analytics
+    const modalHtml = `
+        <div class="modal fade" id="courseAnalyticsModal" tabindex="-1" aria-labelledby="courseAnalyticsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="courseAnalyticsModalLabel">
+                            <i class="fas fa-chart-bar me-2"></i>Analytics: ${courseTitle}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="analyticsContent">
+                            <div class="text-center py-4">
+                                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                                <p class="mt-2">Loading analytics...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <a href="../course-view?course=${courseId}" class="btn btn-primary" target="_blank">
+                            <i class="fas fa-external-link-alt me-1"></i>View Course
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('courseAnalyticsModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('courseAnalyticsModal'));
+    modal.show();
+    
+    // Load analytics data via AJAX
+    fetch('course_analytics.php?course_id=' + courseId)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayCourseAnalytics(data.analytics);
+            } else {
+                document.getElementById('analyticsContent').innerHTML = 
+                    '<div class="alert alert-warning">Unable to load analytics data.</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading analytics:', error);
+            document.getElementById('analyticsContent').innerHTML = 
+                '<div class="alert alert-danger">Error loading analytics data.</div>';
+        });
+}
+
+function displayCourseAnalytics(analytics) {
+    const content = `
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                        <h4>${analytics.total_enrollments || 0}</h4>
+                        <p class="text-muted">Total Enrollments</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="fas fa-trophy fa-2x text-success mb-2"></i>
+                        <h4>${analytics.total_completions || 0}</h4>
+                        <p class="text-muted">Completions</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="fas fa-chart-line fa-2x text-warning mb-2"></i>
+                        <h4>${analytics.completion_rate || 0}%</h4>
+                        <p class="text-muted">Completion Rate</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                        <h4>${analytics.avg_time_spent || 0}h</h4>
+                        <p class="text-muted">Avg. Time Spent</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6>Module Progress</h6>
+                    </div>
+                    <div class="card-body">
+                        ${analytics.module_progress ? analytics.module_progress.map(module => `
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>${module.title}</span>
+                                    <span>${module.completion_rate}%</span>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar" style="width: ${module.completion_rate}%"></div>
+                                </div>
+                            </div>
+                        `).join('') : '<p class="text-muted">No module data available</p>'}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6>Recent Activity</h6>
+                    </div>
+                    <div class="card-body">
+                        ${analytics.recent_activity ? analytics.recent_activity.map(activity => `
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-user-graduate text-primary me-2"></i>
+                                <div>
+                                    <small><strong>${activity.username}</strong> ${activity.action}</small>
+                                    <br><small class="text-muted">${activity.date}</small>
+                                </div>
+                            </div>
+                        `).join('') : '<p class="text-muted">No recent activity</p>'}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('analyticsContent').innerHTML = content;
+}
 
 // Edit course function
 function editCourse(id, title, description, isActive, thumbnail = null) {

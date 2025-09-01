@@ -4,11 +4,13 @@ require_once 'includes/Post.php';
 require_once 'includes/User.php';
 require_once 'includes/Vote.php';
 require_once 'includes/Tag.php';
+require_once 'includes/Course.php';
 
 $post = new Post();
 $user = new User();
 $vote = new Vote();
 $tag = new Tag();
+$course = new Course();
 
 // Check if user is logged in and premium
 $isLoggedIn = $user->isLoggedIn();
@@ -22,9 +24,37 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $perPage = 12; // Increased for better grid layout
 $offset = ($page - 1) * $perPage;
 
+// Get course filter if specified
+$courseFilter = $_GET['course'] ?? null;
+$moduleFilter = $_GET['module'] ?? null;
+
+// Get posts with course context
 $posts = $post->getAllPosts($perPage, $offset, $isPremium, $sortBy);
 $totalPosts = $post->getPostCount($isPremium);
 $totalPages = ceil($totalPosts / $perPage);
+
+// Enhance posts with course information
+if ($isLoggedIn && !empty($posts)) {
+    $currentUser = $user->getCurrentUser();
+    foreach ($posts as &$postItem) {
+        if (!empty($postItem['course_module_id'])) {
+            // Get course context
+            $moduleInfo = $course->getModuleById($postItem['course_module_id']);
+            if ($moduleInfo) {
+                $courseInfo = $course->getCourseById($moduleInfo['course_id']);
+                $postItem['course_context'] = $courseInfo;
+                $postItem['module_info'] = $moduleInfo;
+                
+                // Get user progress for this post
+                $userProgress = $course->getUserCourseProgress($currentUser['id'], $courseInfo['id']);
+                $postItem['user_progress'] = isset($userProgress[$postItem['id']]) ? $userProgress[$postItem['id']] : null;
+            }
+        }
+    }
+}
+
+// Get available courses for filtering
+$availableCourses = $course->getAllCourses();
 
 // Set page variables for head component
 $pageTitle = 'All Tutorials';
@@ -112,12 +142,136 @@ include 'includes/head.php';
                            class="btn <?php echo $sortBy === 'trending' ? 'btn-primary' : 'btn-outline-primary'; ?>">
                                 <i class="fas fa-fire me-1"></i>Trending
                             </a>
+                            <a href="posts.php?sort=course<?php echo isset($_GET['page']) ? '&page=' . $_GET['page'] : ''; ?>" 
+                           class="btn <?php echo $sortBy === 'course' ? 'btn-primary' : 'btn-outline-primary'; ?>">
+                                <i class="fas fa-graduation-cap me-1"></i>By Course
+                            </a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
+
+    <!-- Course Filtering Section -->
+    <?php if (!empty($availableCourses)): ?>
+    <section class="course-filtering-section py-3 bg-primary bg-opacity-10">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-3">
+                    <h6 class="mb-0 text-primary">
+                        <i class="fas fa-graduation-cap me-2"></i>Filter by Course:
+                    </h6>
+                </div>
+                <div class="col-md-9">
+                    <div class="course-filters">
+                        <a href="posts.php<?php echo isset($_GET['sort']) ? '?sort=' . $_GET['sort'] : ''; ?>" 
+                           class="btn <?php echo !$courseFilter ? 'btn-primary' : 'btn-outline-primary'; ?> btn-sm me-2">
+                            <i class="fas fa-globe me-1"></i>All Courses
+                        </a>
+                        <?php foreach ($availableCourses as $courseItem): ?>
+                            <a href="posts.php?course=<?php echo $courseItem['slug']; ?><?php echo isset($_GET['sort']) ? '&sort=' . $_GET['sort'] : ''; ?>" 
+                               class="btn <?php echo $courseFilter === $courseItem['slug'] ? 'btn-primary' : 'btn-outline-primary'; ?> btn-sm me-2">
+                                <i class="fas fa-book me-1"></i><?php echo htmlspecialchars($courseItem['title']); ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </section>
+
+<!-- Learning Insights Section -->
+<?php if ($isLoggedIn && !empty($availableCourses)): ?>
+<section class="learning-insights-section py-4 bg-light">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-line me-2 text-primary"></i>
+                    Your Learning Journey
+                </h5>
+                <div class="learning-stats">
+                    <?php
+                    $totalCoursePosts = 0;
+                    $completedCoursePosts = 0;
+                    $overallProgress = 0;
+                    
+                    foreach ($availableCourses as $courseItem) {
+                        $userProgress = $course->getUserCourseProgress($user->getCurrentUser()['id'], $courseItem['id']);
+                        $coursePosts = count($userProgress);
+                        $courseCompleted = count(array_filter($userProgress, function($p) { return $p['progress_percentage'] == 100; }));
+                        
+                        $totalCoursePosts += $coursePosts;
+                        $completedCoursePosts += $courseCompleted;
+                    }
+                    
+                    if ($totalCoursePosts > 0) {
+                        $overallProgress = round(($completedCoursePosts / $totalCoursePosts) * 100);
+                    }
+                    ?>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="insight-card">
+                                <div class="insight-icon">
+                                    <i class="fas fa-book-open text-primary"></i>
+                                </div>
+                                <div class="insight-content">
+                                    <div class="insight-number"><?php echo $totalCoursePosts; ?></div>
+                                    <div class="insight-label">Course Lessons</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="insight-card">
+                                <div class="insight-icon">
+                                    <i class="fas fa-check-circle text-success"></i>
+                                </div>
+                                <div class="insight-content">
+                                    <div class="insight-number"><?php echo $completedCoursePosts; ?></div>
+                                    <div class="insight-label">Completed</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="insight-card">
+                                <div class="insight-icon">
+                                    <i class="fas fa-percentage text-warning"></i>
+                                </div>
+                                <div class="insight-content">
+                                    <div class="insight-number"><?php echo $overallProgress; ?>%</div>
+                                    <div class="insight-label">Overall Progress</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="learning-actions">
+                    <h6 class="mb-3">Quick Actions</h6>
+                    <a href="profile" class="btn btn-outline-primary btn-sm mb-2 w-100">
+                        <i class="fas fa-user-graduate me-1"></i>View My Progress
+                    </a>
+                    <a href="courses" class="btn btn-outline-success btn-sm mb-2 w-100">
+                        <i class="fas fa-list me-1"></i>Browse All Courses
+                    </a>
+                    <?php if ($overallProgress > 0): ?>
+                        <a href="profile" class="btn btn-outline-warning btn-sm w-100">
+                            <i class="fas fa-trophy me-1"></i>View Achievements
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
 
 <!-- Posts Grid Section -->
 <section class="posts-section py-5">
@@ -146,11 +300,24 @@ include 'includes/head.php';
                             <i class="fas fa-folder me-1"></i>
                             <?php echo htmlspecialchars($post['category_name']); ?>
                         </span>
-                            <?php if ($post['is_premium']): ?>
+                        
+                        <!-- Course Badge -->
+                        <?php if (isset($post['course_context'])): ?>
+                            <span class="course-badge-modern">
+                                <i class="fas fa-graduation-cap me-1"></i>
+                                <?php echo htmlspecialchars($post['course_context']['title']); ?>
+                            </span>
+                            <span class="module-badge-modern">
+                                <i class="fas fa-layer-group me-1"></i>
+                                <?php echo htmlspecialchars($post['module_info']['title']); ?>
+                            </span>
+                        <?php endif; ?>
+                        
+                        <?php if ($post['is_premium']): ?>
                         <span class="premium-badge-modern">
                             <i class="fas fa-crown me-1"></i>Premium
                             </span>
-                            <?php endif; ?>
+                        <?php endif; ?>
                     </div>
                     <div class="card-actions">
                         <button class="btn btn-sm btn-outline-secondary bookmark-btn" 
@@ -159,7 +326,7 @@ include 'includes/head.php';
                             <i class="fas fa-bookmark"></i>
                         </button>
                     </div>
-                        </div>
+                </div>
                         
                 <!-- Card Body -->
                 <div class="card-body-modern">
@@ -195,6 +362,50 @@ include 'includes/head.php';
                         <?php if (count($tags) > 4): ?>
                         <span class="tag-badge-modern more-tags">+<?php echo count($tags) - 4; ?> more</span>
                                 <?php endif; ?>
+                            </div>
+                            <?php endif; ?>
+                            
+                            <!-- Learning Progress Section -->
+                            <?php if (isset($post['course_context']) && isset($post['user_progress'])): ?>
+                            <div class="learning-progress-section mt-3">
+                                <div class="progress-header">
+                                    <small class="text-muted">
+                                        <i class="fas fa-chart-line me-1"></i>
+                                        Your Progress
+                                    </small>
+                                    <small class="progress-percentage">
+                                        <?php echo $post['user_progress']['progress_percentage'] ?? 0; ?>%
+                                    </small>
+                                </div>
+                                <div class="progress mt-2" style="height: 6px;">
+                                    <div class="progress-bar bg-success" 
+                                         style="width: <?php echo $post['user_progress']['progress_percentage'] ?? 0; ?>%">
+                                    </div>
+                                </div>
+                                <?php if ($post['user_progress']['completed_at']): ?>
+                                    <small class="text-success mt-1 d-block">
+                                        <i class="fas fa-check-circle me-1"></i>
+                                        Completed on <?php echo date('M j, Y', strtotime($post['user_progress']['completed_at'])); ?>
+                                    </small>
+                                <?php endif; ?>
+                            </div>
+                            <?php elseif (isset($post['course_context'])): ?>
+                            <div class="learning-status-section mt-3">
+                                <div class="status-info">
+                                    <small class="text-primary">
+                                        <i class="fas fa-play-circle me-1"></i>
+                                        Part of <?php echo htmlspecialchars($post['course_context']['title']); ?> course
+                                    </small>
+                                    <?php if ($isLoggedIn): ?>
+                                        <a href="post.php?slug=<?php echo $post['slug']; ?>" class="btn btn-sm btn-outline-primary mt-2">
+                                            <i class="fas fa-play me-1"></i>Start Learning
+                                        </a>
+                                    <?php else: ?>
+                                        <a href="post.php?slug=<?php echo $post['slug']; ?>" class="btn btn-sm btn-outline-secondary mt-2">
+                                            <i class="fas fa-eye me-1"></i>View Tutorial
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                             <?php endif; ?>
                 </div>
@@ -331,6 +542,104 @@ include 'includes/head.php';
         </div>
     </section>
 
+<!-- Continue Learning Section -->
+<?php if ($isLoggedIn && !empty($availableCourses)): ?>
+<section class="continue-learning-section py-5 bg-gradient-primary">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8">
+                <h4 class="text-white mb-3">
+                    <i class="fas fa-play-circle me-2"></i>
+                    Continue Your Learning Journey
+                </h4>
+                <p class="text-white-50 mb-4">Pick up where you left off and keep progressing through your courses</p>
+                
+                <div class="next-lessons-grid">
+                    <?php
+                    $nextLessons = [];
+                    foreach ($availableCourses as $courseItem) {
+                        $userProgress = $course->getUserCourseProgress($user->getCurrentUser()['id'], $courseItem['id']);
+                        if (!empty($userProgress)) {
+                            // Find the next incomplete lesson
+                            foreach ($userProgress as $lesson) {
+                                if ($lesson['progress_percentage'] < 100) {
+                                    $nextLessons[] = [
+                                        'course' => $courseItem,
+                                        'lesson' => $lesson,
+                                        'progress' => $lesson['progress_percentage']
+                                    ];
+                                    break; // Only get one lesson per course
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Limit to 3 next lessons
+                    $nextLessons = array_slice($nextLessons, 0, 3);
+                    ?>
+                    
+                    <?php if (!empty($nextLessons)): ?>
+                        <div class="row">
+                            <?php foreach ($nextLessons as $nextLesson): ?>
+                                <div class="col-md-4 mb-3">
+                                    <div class="next-lesson-card">
+                                        <div class="lesson-header">
+                                            <div class="course-badge">
+                                                <i class="fas fa-graduation-cap me-1"></i>
+                                                <?php echo htmlspecialchars($nextLesson['course']['title']); ?>
+                                            </div>
+                                            <div class="progress-badge">
+                                                <?php echo $nextLesson['progress']; ?>% Complete
+                                            </div>
+                                        </div>
+                                        <h6 class="lesson-title">
+                                            <?php echo htmlspecialchars($nextLesson['lesson']['title'] ?? 'Continue Learning'); ?>
+                                        </h6>
+                                        <div class="lesson-progress">
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar bg-warning" 
+                                                     style="width: <?php echo $nextLesson['progress']; ?>%">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <a href="post.php?slug=<?php echo $nextLesson['lesson']['slug'] ?? '#'; ?>" 
+                                           class="btn btn-light btn-sm w-100 mt-2">
+                                            <i class="fas fa-play me-1"></i>Continue
+                                        </a>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="text-center">
+                            <p class="text-white-50 mb-3">Great job! You've completed all your current lessons.</p>
+                            <a href="courses" class="btn btn-light">
+                                <i class="fas fa-plus me-1"></i>Explore New Courses
+                            </a>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="motivation-card text-center">
+                    <div class="motivation-icon mb-3">
+                        <i class="fas fa-trophy fa-3x text-warning"></i>
+                    </div>
+                    <h5 class="text-white mb-2">Keep Learning!</h5>
+                    <p class="text-white-50 mb-3">Every lesson completed brings you closer to mastering new skills.</p>
+                    <div class="motivation-stats">
+                        <div class="stat-item">
+                            <span class="stat-number text-warning"><?php echo $completedCoursePosts; ?></span>
+                            <span class="stat-label text-white-50">Lessons Completed</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
 <!-- Enhanced Newsletter Section -->
 <section class="newsletter-section-modern py-5">
         <div class="container">
@@ -420,4 +729,309 @@ include 'includes/head.php';
             console.log('Alternative vote buttons (.vote-btn) found:', altVoteButtons.length);
         }
     });
-    </script> 
+    </script>
+    
+    <style>
+    /* Course Filtering Styles */
+    .course-filtering-section {
+        border-top: 1px solid rgba(13, 110, 253, 0.2);
+        border-bottom: 1px solid rgba(13, 110, 253, 0.2);
+    }
+    
+    .course-filters .btn {
+        border-radius: 20px;
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .course-filters .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2);
+    }
+    
+    /* Enhanced Post Card Badges */
+    .course-badge-modern {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: inline-block;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .module-badge-modern {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: inline-block;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Learning Progress Section */
+    .learning-progress-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        border: 1px solid #e9ecef;
+    }
+    
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .progress-percentage {
+        font-weight: 600;
+        color: #28a745;
+    }
+    
+    .learning-progress-section .progress {
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    
+    .learning-progress-section .progress-bar {
+        background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+        transition: width 0.6s ease;
+    }
+    
+    /* Learning Status Section */
+    .learning-status-section {
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        border-radius: 8px;
+        padding: 1rem;
+        border: 1px solid #90caf9;
+        text-align: center;
+    }
+    
+    .status-info .btn {
+        border-radius: 20px;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .status-info .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2);
+    }
+    
+    /* Learning Insights Section */
+    .learning-insights-section {
+        border-top: 1px solid #dee2e6;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .insight-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        text-align: center;
+        height: 100%;
+        transition: all 0.3s ease;
+    }
+    
+    .insight-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+    
+    .insight-icon {
+        margin-bottom: 1rem;
+    }
+    
+    .insight-icon i {
+        font-size: 2rem;
+    }
+    
+    .insight-number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+    
+    .insight-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+        font-weight: 500;
+    }
+    
+    .learning-actions {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        height: 100%;
+    }
+    
+    .learning-actions h6 {
+        color: #2d3748;
+        font-weight: 600;
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 0.5rem;
+    }
+    
+    .learning-actions .btn {
+        border-radius: 8px;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .learning-actions .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .course-filters {
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .course-filters .btn {
+            margin-bottom: 0.5rem;
+        }
+        
+        .insight-card {
+            margin-bottom: 1rem;
+        }
+        
+        .learning-actions {
+            margin-top: 1rem;
+        }
+        
+        .course-badge-modern,
+        .module-badge-modern {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+    }
+    
+    /* Continue Learning Section */
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    }
+    
+    .next-lesson-card {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        height: 100%;
+        transition: all 0.3s ease;
+    }
+    
+    .next-lesson-card:hover {
+        background: rgba(255, 255, 255, 0.15);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    .lesson-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .course-badge {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        backdrop-filter: blur(10px);
+    }
+    
+    .progress-badge {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        backdrop-filter: blur(10px);
+    }
+    
+    .lesson-title {
+        color: white;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        line-height: 1.3;
+    }
+    
+    .lesson-progress .progress {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+    
+    .lesson-progress .progress-bar {
+        background: #ffc107;
+        transition: width 0.6s ease;
+    }
+    
+    .motivation-card {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        height: 100%;
+    }
+    
+    .motivation-icon i {
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+    }
+    
+    .motivation-stats .stat-item {
+        text-align: center;
+    }
+    
+    .motivation-stats .stat-number {
+        display: block;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .motivation-stats .stat-label {
+        font-size: 0.875rem;
+        opacity: 0.8;
+    }
+    
+    /* Responsive adjustments for continue learning */
+    @media (max-width: 768px) {
+        .next-lesson-card {
+            margin-bottom: 1rem;
+        }
+        
+        .motivation-card {
+            margin-top: 1rem;
+        }
+        
+        .lesson-header {
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: flex-start;
+        }
+    }
+    </style> 

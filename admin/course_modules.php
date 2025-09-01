@@ -161,6 +161,10 @@ if ($action) {
             $moduleId = (int)$_POST['module_id'];
             $title = trim($_POST['title']);
             $description = trim($_POST['description']);
+            $requiredLessonId = !empty($_POST['required_lesson_id']) ? (int)$_POST['required_lesson_id'] : null;
+            $relatedLessonId = !empty($_POST['related_lesson_id']) ? (int)$_POST['related_lesson_id'] : null;
+            $orderIndex = isset($_POST['order_index']) ? (int)$_POST['order_index'] : 0;
+            $isActive = isset($_POST['is_active']) ? (int)$_POST['is_active'] : 1;
             
             if (!empty($title) && !empty($description) && $moduleId > 0) {
                 if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
@@ -169,7 +173,21 @@ if ($action) {
                     $fileType = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
                     
                     // Validate file type
-                    $allowedTypes = ['pdf', 'ppt', 'pptx', 'doc', 'docx'];
+                    $allowedTypes = ['pdf', 'ppt', 'pptx', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar'];
+                    
+                    // Validate file size (max 50MB)
+                    $maxSize = 50 * 1024 * 1024; // 50MB
+                    if ($fileSize > $maxSize) {
+                        if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+                            header('Content-Type: application/json');
+                            echo json_encode(['success' => false, 'message' => 'File size too large. Maximum allowed size is 50MB.']);
+                            exit;
+                        } else {
+                            $errorMessage = "File size too large. Maximum allowed size is 50MB.";
+                            break;
+                        }
+                    }
+                    
                     if (in_array($fileType, $allowedTypes)) {
                         // Create uploads directory if it doesn't exist
                         $uploadDir = '../uploads/course_materials/';
@@ -209,7 +227,7 @@ if ($action) {
                         }
                         
                         if (move_uploaded_file($_FILES['file']['tmp_name'], $filePath)) {
-                            if ($course->createMaterial($moduleId, $title, $description, $fileName, $filePath, $fileSize, $fileType, $coverImage, $coverImagePath)) {
+                            if ($course->createMaterial($moduleId, $title, $description, $fileName, $filePath, $fileSize, $fileType, $coverImage, $coverImagePath, $requiredLessonId, $relatedLessonId, $orderIndex)) {
                                 // Check if this is an AJAX request
                                 if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
                                     header('Content-Type: application/json');
@@ -309,6 +327,10 @@ if ($action) {
                 $moduleId = (int)$_POST['module_id'];
                 $title = trim($_POST['title']);
                 $description = trim($_POST['description']);
+                $requiredLessonId = !empty($_POST['required_lesson_id']) ? (int)$_POST['required_lesson_id'] : null;
+                $relatedLessonId = !empty($_POST['related_lesson_id']) ? (int)$_POST['related_lesson_id'] : null;
+                $orderIndex = isset($_POST['order_index']) ? (int)$_POST['order_index'] : 0;
+                $isActive = isset($_POST['is_active']) ? (int)$_POST['is_active'] : 1;
                 
                 if (!empty($title) && !empty($description) && $materialId > 0) {
                     // Get current material to check if cover image needs updating
@@ -349,7 +371,7 @@ if ($action) {
                         }
                         
                         // Update the material
-                        if ($course->updateMaterial($materialId, $title, $description, $coverImage, $coverImagePath)) {
+                        if ($course->updateMaterial($materialId, $title, $description, $coverImage, $coverImagePath, $isActive, $requiredLessonId, $relatedLessonId, $orderIndex)) {
                             if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
                                 header('Content-Type: application/json');
                                 echo json_encode(['success' => true, 'message' => 'Material updated successfully!']);
@@ -960,18 +982,60 @@ include '../includes/head.php';
                         </h6>
                         <form id="addMaterialForm" enctype="multipart/form-data">
                             <input type="hidden" id="material_module_id" name="module_id">
+                            
+                            <!-- Basic Information -->
                             <div class="mb-3">
-                                <label for="new_material_title" class="form-label">Material Title</label>
+                                <label for="new_material_title" class="form-label">Material Title <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="new_material_title" name="title" required>
                             </div>
                             <div class="mb-3">
-                                <label for="new_material_description" class="form-label">Description</label>
+                                <label for="new_material_description" class="form-label">Description <span class="text-danger">*</span></label>
                                 <textarea class="form-control" id="new_material_description" name="description" rows="2" required></textarea>
                             </div>
+                            
+                            <!-- Progressive Learning Fields -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="new_material_order" class="form-label">Display Order</label>
+                                        <input type="number" class="form-control" id="new_material_order" name="order_index" value="0" min="0" max="999">
+                                        <div class="form-text">Lower = higher priority</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="new_material_active" class="form-label">Status</label>
+                                        <select class="form-select" id="new_material_active" name="is_active">
+                                            <option value="1" selected>Active</option>
+                                            <option value="0">Inactive</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <div class="mb-3">
-                                <label for="new_material_file" class="form-label">Select File</label>
-                                <input type="file" class="form-control" id="new_material_file" name="file" accept=".pdf,.ppt,.pptx,.doc,.docx" required>
-                                <div class="form-text">PDF, PPT, PPTX, DOC, DOCX (Max: 10MB)</div>
+                                <label for="new_material_required_lesson" class="form-label">Required Lesson (Optional)</label>
+                                <select class="form-select" id="new_material_required_lesson" name="required_lesson_id">
+                                    <option value="">No requirement - Always accessible</option>
+                                    <!-- Will be populated by JavaScript based on selected module -->
+                                </select>
+                                <div class="form-text">Users must complete this lesson before accessing the material</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="new_material_related_lesson" class="form-label">Related Lesson (Optional)</label>
+                                <select class="form-select" id="new_material_related_lesson" name="related_lesson_id">
+                                    <option value="">Not related to a specific lesson</option>
+                                    <!-- Will be populated by JavaScript based on selected module -->
+                                </select>
+                                <div class="form-text">Material will appear in the lesson page</div>
+                            </div>
+                            
+                            <!-- File Upload -->
+                            <div class="mb-3">
+                                <label for="new_material_file" class="form-label">Select File <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control" id="new_material_file" name="file" accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.zip,.rar" required>
+                                <div class="form-text"><strong>Allowed:</strong> PDF, Office, Archives | <strong>Max:</strong> 50MB</div>
                             </div>
                             
                             <div class="mb-3">
@@ -1033,6 +1097,55 @@ include '../includes/head.php';
                     <div class="mb-3">
                         <label for="edit_material_description" class="form-label">Description</label>
                         <textarea class="form-control" id="edit_material_description" name="description" rows="3" required></textarea>
+                    </div>
+                    
+                    <!-- Progressive Learning Fields -->
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="edit_material_order" class="form-label">Display Order</label>
+                                <input type="number" class="form-control" id="edit_material_order" name="order_index" value="0" min="0" max="999">
+                                <div class="form-text">Lower = higher priority</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="edit_material_active" class="form-label">Status</label>
+                                <select class="form-select" id="edit_material_active" name="is_active">
+                                    <option value="1">Active</option>
+                                    <option value="0">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="edit_material_downloads" class="form-label">Downloads</label>
+                                <input type="text" class="form-control" id="edit_material_downloads" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_material_required_lesson" class="form-label">Required Lesson (Optional)</label>
+                                <select class="form-select" id="edit_material_required_lesson" name="required_lesson_id">
+                                    <option value="">No requirement - Always accessible</option>
+                                    <!-- Will be populated by JavaScript -->
+                                </select>
+                                <div class="form-text">Users must complete this lesson before accessing</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_material_related_lesson" class="form-label">Related Lesson (Optional)</label>
+                                <select class="form-select" id="edit_material_related_lesson" name="related_lesson_id">
+                                    <option value="">Not related to a specific lesson</option>
+                                    <!-- Will be populated by JavaScript -->
+                                </select>
+                                <div class="form-text">Material will appear in the lesson page</div>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="row">
@@ -1112,6 +1225,9 @@ function manageMaterials(moduleId, moduleTitle) {
     
     // Update modal title
     document.getElementById('manageMaterialsModalLabel').textContent = `Manage Materials - ${moduleTitle}`;
+    
+    // Populate lesson dropdowns for the add new material form
+    populateLessonDropdowns(moduleId, ['new_material_required_lesson', 'new_material_related_lesson']);
     
     // Load existing materials
     loadModuleMaterials(moduleId);
@@ -1266,14 +1382,31 @@ function displayMaterials(materials) {
                                             ${material.download_count || 0} downloads
                                         </div>
                                         <div class="col-6 col-sm-6">
+                                            <i class="fas fa-sort-numeric-down me-1"></i>
+                                            Order: ${material.order_index || 0}
+                                        </div>
+                                    </div>
+                                    <div class="row text-muted small mt-1">
+                                        <div class="col-12">
                                             <i class="fas fa-calendar me-1"></i>
                                             <span class="d-none d-sm-inline">${new Date(material.created_at).toLocaleDateString()}</span>
                                             <span class="d-inline d-sm-none">${new Date(material.created_at).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</span>
                                         </div>
                                     </div>
+                                    ${material.required_lesson_id || material.related_lesson_id ? `
+                                    <div class="mt-2">
+                                        ${material.required_lesson_id ? '<span class="badge bg-warning text-dark me-1"><i class="fas fa-lock me-1"></i>Requires Lesson</span>' : ''}
+                                        ${material.related_lesson_id ? '<span class="badge bg-info me-1"><i class="fas fa-link me-1"></i>Linked to Lesson</span>' : ''}
+                                        ${material.is_active == 0 ? '<span class="badge bg-secondary"><i class="fas fa-eye-slash me-1"></i>Inactive</span>' : '<span class="badge bg-success"><i class="fas fa-eye me-1"></i>Active</span>'}
+                                    </div>
+                                    ` : `
+                                    <div class="mt-2">
+                                        ${material.is_active == 0 ? '<span class="badge bg-secondary"><i class="fas fa-eye-slash me-1"></i>Inactive</span>' : '<span class="badge bg-success"><i class="fas fa-eye me-1"></i>Active</span>'}
+                                    </div>
+                                    `}
                                 </div>
                                 <div class="btn-group btn-group-sm ms-2">
-                                    <button class="btn btn-outline-info btn-sm" onclick="editMaterial(${material.id}, '${material.title.replace(/'/g, "\\'")}', '${material.description.replace(/'/g, "\\'").replace(/"/g, '\\"')}')" title="Edit Material">
+                                    <button class="btn btn-outline-info btn-sm" data-material-id="${material.id}" data-material-title="${material.title}" data-material-description="${material.description}" data-order-index="${material.order_index || 0}" data-is-active="${material.is_active || 1}" data-downloads="${material.download_count || 0}" data-required-lesson="${material.required_lesson_id || ''}" data-related-lesson="${material.related_lesson_id || ''}" onclick="editMaterialByData(this)" title="Edit Material">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     <button class="btn btn-outline-primary btn-sm" onclick="downloadMaterial(${material.id})" title="Download Material">
@@ -1318,8 +1451,75 @@ function displayMaterials(materials) {
     }, 100);
 }
 
-function editMaterial(materialId, title, description) {
-    console.log('Editing material:', materialId, title, description);
+// Function to populate lesson dropdowns based on module
+function populateLessonDropdowns(moduleId, targetSelectIds) {
+    if (!moduleId) return;
+    
+    // Make AJAX request to get posts for this module
+    fetch(`../api/get-module-posts.php?module_id=${moduleId}`)
+        .then(response => response.json())
+        .then(posts => {
+            targetSelectIds.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (select) {
+                    // Clear existing options except the first one
+                    const firstOption = select.firstElementChild;
+                    select.innerHTML = '';
+                    select.appendChild(firstOption);
+                    
+                    // Add posts as options
+                    posts.forEach(post => {
+                        const option = document.createElement('option');
+                        option.value = post.id;
+                        option.textContent = `${post.title} (Lesson ${post.lesson_order})`;
+                        select.appendChild(option);
+                    });
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error loading posts:', error);
+        });
+}
+
+function editMaterialByData(button) {
+    console.log('=== EDIT MATERIAL BY DATA CALLED ===');
+    
+    // Extract data from button attributes
+    const materialId = parseInt(button.dataset.materialId);
+    const title = button.dataset.materialTitle;
+    const description = button.dataset.materialDescription;
+    const orderIndex = parseInt(button.dataset.orderIndex) || 0;
+    const isActive = parseInt(button.dataset.isActive) || 1;
+    const downloads = parseInt(button.dataset.downloads) || 0;
+    const requiredLessonId = button.dataset.requiredLesson ? parseInt(button.dataset.requiredLesson) : null;
+    const relatedLessonId = button.dataset.relatedLesson ? parseInt(button.dataset.relatedLesson) : null;
+    
+    console.log('Data extracted from button:');
+    console.log('- materialId:', materialId);
+    console.log('- title:', title);
+    console.log('- description:', description);
+    console.log('- orderIndex:', orderIndex);
+    console.log('- isActive:', isActive);
+    console.log('- downloads:', downloads);
+    console.log('- requiredLessonId:', requiredLessonId);
+    console.log('- relatedLessonId:', relatedLessonId);
+    
+    // Call the original editMaterial function
+    editMaterial(materialId, title, description, orderIndex, isActive, downloads, requiredLessonId, relatedLessonId);
+}
+
+function editMaterial(materialId, title, description, orderIndex = 0, isActive = 1, downloads = 0, requiredLessonId = null, relatedLessonId = null) {
+    console.log('=== EDIT MATERIAL FUNCTION CALLED ===');
+    console.log('Parameters received:');
+    console.log('- materialId:', materialId);
+    console.log('- title:', title);
+    console.log('- description:', description);
+    console.log('- orderIndex:', orderIndex);
+    console.log('- isActive:', isActive);
+    console.log('- downloads:', downloads);
+    console.log('- requiredLessonId:', requiredLessonId);
+    console.log('- relatedLessonId:', relatedLessonId);
     
     // Get the current module ID
     const moduleId = document.getElementById('material_module_id').value;
@@ -1330,11 +1530,31 @@ function editMaterial(materialId, title, description) {
     document.getElementById('edit_material_title').value = title;
     document.getElementById('edit_material_description').value = description;
     
+    // Set progressive learning fields
+    document.getElementById('edit_material_order').value = orderIndex;
+    document.getElementById('edit_material_active').value = isActive;
+    document.getElementById('edit_material_downloads').value = downloads + ' downloads';
+    
+    // Populate lesson dropdowns and set selected values
+    populateLessonDropdowns(moduleId, ['edit_material_required_lesson', 'edit_material_related_lesson']);
+    
+    // Set selected lesson values after populating dropdowns
+    setTimeout(() => {
+        if (requiredLessonId) {
+            document.getElementById('edit_material_required_lesson').value = requiredLessonId;
+        }
+        if (relatedLessonId) {
+            document.getElementById('edit_material_related_lesson').value = relatedLessonId;
+        }
+    }, 500);
+    
     // Get material details for display
     const materialCard = event.target.closest('.material-card');
-    const fileType = materialCard.querySelector('.fa-file-pdf, .fa-file-word').classList.contains('fa-file-pdf') ? 'PDF' : 'DOC';
-    const fileName = materialCard.querySelector('.text-muted.small').textContent.trim();
-    const fileSize = materialCard.querySelector('.fa-weight-hanging').nextSibling.textContent.trim();
+    const fileType = materialCard.querySelector('.fa-file-pdf, .fa-file-word, .fa-file-powerpoint, .fa-file-excel, .fa-file-archive, .fa-file-alt') 
+        ? Array.from(materialCard.querySelectorAll('.fas')).find(icon => icon.classList.contains('fa-file-'))?.classList[1]?.replace('fa-file-', '').toUpperCase() || 'FILE'
+        : 'FILE';
+    const fileName = materialCard.querySelector('.text-muted.small')?.textContent.trim() || 'Unknown';
+    const fileSize = materialCard.querySelector('.fa-hdd')?.nextSibling?.textContent.trim() || 'Unknown';
     
     // Set readonly fields
     document.getElementById('edit_material_file_type').value = fileType;
@@ -1363,7 +1583,11 @@ function editMaterial(materialId, title, description) {
     document.getElementById('edit_material_cover').value = '';
     
     // Show the modal
-    new bootstrap.Modal(document.getElementById('editMaterialModal')).show();
+    console.log('About to show edit material modal...');
+    const modal = new bootstrap.Modal(document.getElementById('editMaterialModal'));
+    console.log('Modal instance created:', modal);
+    modal.show();
+    console.log('Modal show() called');
 }
 
 function deleteMaterial(materialId) {

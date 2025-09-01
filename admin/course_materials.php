@@ -32,6 +32,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'upload_material':
             $title = trim($_POST['title']);
             $description = trim($_POST['description']);
+            $requiredLessonId = !empty($_POST['required_lesson_id']) ? (int)$_POST['required_lesson_id'] : null;
+            $relatedLessonId = !empty($_POST['related_lesson_id']) ? (int)$_POST['related_lesson_id'] : null;
+            $orderIndex = isset($_POST['order_index']) ? (int)$_POST['order_index'] : 0;
             
             if (!empty($title) && !empty($_FILES['material_file']['name'])) {
                 $file = $_FILES['material_file'];
@@ -40,9 +43,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $fileType = pathinfo($fileName, PATHINFO_EXTENSION);
                 
                 // Validate file type
-                $allowedTypes = ['pdf', 'ppt', 'pptx', 'doc', 'docx'];
+                $allowedTypes = ['pdf', 'ppt', 'pptx', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar'];
                 if (!in_array(strtolower($fileType), $allowedTypes)) {
-                    $errorMessage = "Invalid file type. Only PDF, PowerPoint, and Word documents are allowed.";
+                    $errorMessage = "Invalid file type. Only PDF, PowerPoint, Word, Excel, and Archive files are allowed.";
+                    break;
+                }
+                
+                // Validate file size (max 50MB)
+                $maxSize = 50 * 1024 * 1024; // 50MB
+                if ($fileSize > $maxSize) {
+                    $errorMessage = "File size too large. Maximum allowed size is 50MB.";
                     break;
                 }
                 
@@ -57,9 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $filePath = $uploadDir . $uniqueName;
                 
                 if (move_uploaded_file($file['tmp_name'], $filePath)) {
-                    $materialId = $course->createMaterial($moduleId, $title, $description, $fileName, $filePath, $fileSize, $fileType);
+                    $materialId = $course->createMaterial($moduleId, $title, $description, $fileName, $filePath, $fileSize, $fileType, null, null, $requiredLessonId, $relatedLessonId, $orderIndex);
                     if ($materialId) {
-                        $successMessage = "Material uploaded successfully!";
+                        $successMessage = "Material uploaded successfully with progressive learning integration!";
                     } else {
                         $errorMessage = "Failed to save material information.";
                         unlink($filePath); // Clean up uploaded file
@@ -102,6 +112,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get materials for this module
 $materials = $course->getMaterialsByModule($moduleId, false);
+
+// Get course info and posts for lesson selection
+$courseData = $course->getCourseById($moduleData['course_id']);
+$coursePosts = $course->getPostsByModule($moduleId, false); // Get all posts in this module for selection
 
 include '../includes/head.php';
 ?>
@@ -197,13 +211,39 @@ include '../includes/head.php';
                                             <h6 class="card-title"><?php echo htmlspecialchars($material['title']); ?></h6>
                                             <p class="card-text text-muted small"><?php echo htmlspecialchars($material['description']); ?></p>
                                             
+                                            <!-- Progressive Learning Info -->
+                                            <?php if (!empty($material['required_lesson_id']) || !empty($material['related_lesson_id'])): ?>
+                                                <div class="progressive-learning-info mb-2">
+                                                    <?php if (!empty($material['required_lesson_id'])): ?>
+                                                        <div class="mb-1">
+                                                            <span class="badge bg-warning text-dark">
+                                                                <i class="fas fa-lock me-1"></i>Requires Lesson Completion
+                                                            </span>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                    <?php if (!empty($material['related_lesson_id'])): ?>
+                                                        <div class="mb-1">
+                                                            <span class="badge bg-info">
+                                                                <i class="fas fa-link me-1"></i>Related to Lesson
+                                                            </span>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endif; ?>
+                                            
                                             <div class="material-info">
                                                 <div class="row text-muted small">
                                                     <div class="col-6">
                                                         <i class="fas fa-download me-1"></i>
-                                                        <?php echo $material['download_count']; ?> downloads
+                                                        <?php echo number_format($material['download_count']); ?> downloads
                                                     </div>
                                                     <div class="col-6">
+                                                        <i class="fas fa-sort-numeric-down me-1"></i>
+                                                        Order: <?php echo $material['order_index']; ?>
+                                                    </div>
+                                                </div>
+                                                <div class="row text-muted small mt-1">
+                                                    <div class="col-12">
                                                         <i class="fas fa-calendar me-1"></i>
                                                         <?php echo date('M j, Y', strtotime($material['created_at'])); ?>
                                                     </div>
@@ -239,19 +279,91 @@ include '../includes/head.php';
             <form method="POST" enctype="multipart/form-data">
                 <div class="modal-body">
                     <input type="hidden" name="action" value="upload_material">
+                    
+                    <!-- Basic Information -->
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-info-circle me-2"></i>Basic Information
+                            </h6>
+                        </div>
+                    </div>
+                    
                     <div class="mb-3">
-                        <label for="title" class="form-label">Material Title</label>
+                        <label for="title" class="form-label">Material Title <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="title" name="title" required>
                     </div>
+                    
                     <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
+                        <label for="description" class="form-label">Description <span class="text-danger">*</span></label>
                         <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
                     </div>
+                    
                     <div class="mb-3">
-                        <label for="material_file" class="form-label">File (PDF, PowerPoint, Word)</label>
+                        <label for="order_index" class="form-label">Display Order</label>
+                        <input type="number" class="form-control" id="order_index" name="order_index" 
+                               value="0" min="0" max="999">
+                        <div class="form-text">Lower numbers appear first (0 = highest priority)</div>
+                    </div>
+                    
+                    <!-- Progressive Learning Integration -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6 class="text-success mb-3">
+                                <i class="fas fa-graduation-cap me-2"></i>Progressive Learning Integration
+                            </h6>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="required_lesson_id" class="form-label">Required Lesson (Optional)</label>
+                        <select class="form-select" id="required_lesson_id" name="required_lesson_id">
+                            <option value="">No requirement - Always accessible</option>
+                            <?php if (!empty($coursePosts)): ?>
+                                <?php foreach ($coursePosts as $post): ?>
+                                    <option value="<?php echo $post['id']; ?>">
+                                        <?php echo htmlspecialchars($post['title']); ?> 
+                                        (Lesson <?php echo $post['lesson_order']; ?>)
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                        <div class="form-text">Users must complete this lesson before accessing the material</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="related_lesson_id" class="form-label">Related Lesson (Optional)</label>
+                        <select class="form-select" id="related_lesson_id" name="related_lesson_id">
+                            <option value="">Not related to a specific lesson</option>
+                            <?php if (!empty($coursePosts)): ?>
+                                <?php foreach ($coursePosts as $post): ?>
+                                    <option value="<?php echo $post['id']; ?>">
+                                        <?php echo htmlspecialchars($post['title']); ?> 
+                                        (Lesson <?php echo $post['lesson_order']; ?>)
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                        <div class="form-text">Material will appear in the lesson page and be recommended to users</div>
+                    </div>
+                    
+                    <!-- File Upload -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6 class="text-warning mb-3">
+                                <i class="fas fa-upload me-2"></i>File Upload
+                            </h6>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="material_file" class="form-label">File <span class="text-danger">*</span></label>
                         <input type="file" class="form-control" id="material_file" name="material_file" 
-                               accept=".pdf,.ppt,.pptx,.doc,.docx" required>
-                        <div class="form-text">Allowed file types: PDF, PPT, PPTX, DOC, DOCX (Max size: 10MB)</div>
+                               accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.zip,.rar" required>
+                        <div class="form-text">
+                            <strong>Allowed types:</strong> PDF, PowerPoint, Word, Excel, Archives<br>
+                            <strong>Maximum size:</strong> 50MB
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">

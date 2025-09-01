@@ -4,11 +4,13 @@ require_once 'includes/User.php';
 require_once 'includes/Post.php';
 require_once 'includes/Comment.php';
 require_once 'includes/Newsletter.php';
+require_once 'includes/Course.php';
 
 $user = new User();
 $post = new Post();
 $comment = new Comment();
 $newsletter = new Newsletter();
+$course = new Course();
 
 // Check if user is logged in
 if (!$user->isLoggedIn()) {
@@ -21,6 +23,38 @@ $action = isset($_GET['action']) ? $_GET['action'] : 'view';
 
 // Get user's newsletter subscription
 $userSubscription = $newsletter->getUserSubscription($currentUser['id'], $currentUser['email']);
+
+// Get user's course progress and enrollments
+$userCourses = $course->getCoursesWithProgress($currentUser['id']);
+$totalEnrollments = 0;
+$totalCompletedCourses = 0;
+$totalLessonsCompleted = 0;
+$overallProgress = 0;
+
+foreach ($userCourses as $courseData) {
+    if (isset($courseData['enrolled_at'])) {
+        $totalEnrollments++;
+        if ($courseData['course_completed_at']) {
+            $totalCompletedCourses++;
+        }
+        if (isset($courseData['completed_lessons'])) {
+            $totalLessonsCompleted += $courseData['completed_lessons'];
+        }
+    }
+}
+
+// Calculate overall progress
+if ($totalEnrollments > 0) {
+    $totalLessons = 0;
+    $completedLessons = 0;
+    foreach ($userCourses as $courseData) {
+        if (isset($courseData['enrolled_at'])) {
+            $totalLessons += $courseData['total_lessons'];
+            $completedLessons += $courseData['completed_lessons'] ?? 0;
+        }
+    }
+    $overallProgress = $totalLessons > 0 ? round(($completedLessons / $totalLessons) * 100, 1) : 0;
+}
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -331,6 +365,136 @@ include 'includes/head.php';
                 </div>
             </div>
 
+            <!-- Course Progress Section -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-graduation-cap me-2"></i>Learning Progress
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <?php if ($totalEnrollments > 0): ?>
+                                <!-- Progress Overview -->
+                                <div class="row mb-4">
+                                    <div class="col-md-3 col-sm-6 mb-3">
+                                        <div class="progress-stat-card">
+                                            <div class="stat-icon">
+                                                <i class="fas fa-book text-primary"></i>
+                                            </div>
+                                            <div class="stat-info">
+                                                <h4 class="stat-number"><?php echo $totalEnrollments; ?></h4>
+                                                <p class="stat-label">Courses Enrolled</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 mb-3">
+                                        <div class="progress-stat-card">
+                                            <div class="stat-icon">
+                                                <i class="fas fa-trophy text-warning"></i>
+                                            </div>
+                                            <div class="stat-info">
+                                                <h4 class="stat-number"><?php echo $totalCompletedCourses; ?></h4>
+                                                <p class="stat-label">Courses Completed</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 mb-3">
+                                        <div class="progress-stat-card">
+                                            <div class="stat-icon">
+                                                <i class="fas fa-check-circle text-success"></i>
+                                            </div>
+                                            <div class="stat-info">
+                                                <h4 class="stat-number"><?php echo $totalLessonsCompleted; ?></h4>
+                                                <p class="stat-label">Lessons Completed</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 mb-3">
+                                        <div class="progress-stat-card">
+                                            <div class="stat-icon">
+                                                <i class="fas fa-chart-line text-info"></i>
+                                            </div>
+                                            <div class="stat-info">
+                                                <h4 class="stat-number"><?php echo $overallProgress; ?>%</h4>
+                                                <p class="stat-label">Overall Progress</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Individual Course Progress -->
+                                <h6 class="mb-3">Your Courses</h6>
+                                <div class="row">
+                                    <?php foreach ($userCourses as $courseData): ?>
+                                        <?php if (isset($courseData['enrolled_at'])): ?>
+                                            <?php
+                                            $courseProgress = 0;
+                                            if ($courseData['total_lessons'] > 0) {
+                                                $courseProgress = round((($courseData['completed_lessons'] ?? 0) / $courseData['total_lessons']) * 100, 1);
+                                            }
+                                            ?>
+                                            <div class="col-md-6 mb-3">
+                                                <div class="course-progress-card">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <h6 class="course-title"><?php echo htmlspecialchars($courseData['title']); ?></h6>
+                                                        <div class="course-badges">
+                                                            <?php if ($courseData['course_completed_at']): ?>
+                                                                <span class="badge bg-success">
+                                                                    <i class="fas fa-trophy me-1"></i>Completed
+                                                                </span>
+                                                            <?php else: ?>
+                                                                <span class="badge bg-primary">In Progress</span>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="course-stats mb-2">
+                                                        <small class="text-muted">
+                                                            <?php echo $courseData['completed_lessons'] ?? 0; ?> of <?php echo $courseData['total_lessons']; ?> lessons completed
+                                                        </small>
+                                                    </div>
+                                                    
+                                                    <div class="progress mb-2" style="height: 8px;">
+                                                        <div class="progress-bar bg-<?php echo $courseData['course_completed_at'] ? 'success' : 'primary'; ?>" 
+                                                             style="width: <?php echo $courseProgress; ?>%"></div>
+                                                    </div>
+                                                    
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <small class="text-muted">
+                                                            Enrolled: <?php echo date('M j, Y', strtotime($courseData['enrolled_at'])); ?>
+                                                        </small>
+                                                        <a href="course-view?course=<?php echo $courseData['slug']; ?>" class="btn btn-sm btn-outline-primary">
+                                                            <?php echo $courseProgress > 0 ? 'Continue' : 'Start'; ?>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </div>
+                                
+                                <div class="text-center mt-3">
+                                    <a href="courses" class="btn btn-outline-primary">
+                                        <i class="fas fa-graduation-cap me-2"></i>Browse More Courses
+                                    </a>
+                                </div>
+                            <?php else: ?>
+                                <div class="text-center py-4">
+                                    <i class="fas fa-graduation-cap fa-3x text-muted mb-3"></i>
+                                    <h5>Start Your Learning Journey</h5>
+                                    <p class="text-muted mb-3">You haven't enrolled in any courses yet. Explore our structured learning paths to improve your skills.</p>
+                                    <a href="courses" class="btn btn-primary">
+                                        <i class="fas fa-rocket me-2"></i>Explore Courses
+                                    </a>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
                          <!-- User Activity -->
              <div class="row">
                  <?php if ($currentUser['is_admin']): ?>
@@ -567,6 +731,133 @@ include 'includes/head.php';
         </div>
     </div>
 </div>
+
+<style>
+/* Course Progress Styles */
+.progress-stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.progress-stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    border-color: #007bff;
+}
+
+.progress-stat-card .stat-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.progress-stat-card .stat-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #2d3748;
+}
+
+.progress-stat-card .stat-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-bottom: 0;
+    font-weight: 500;
+}
+
+.course-progress-card {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.course-progress-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: #007bff;
+}
+
+.course-progress-card .course-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 0;
+    line-height: 1.3;
+}
+
+.course-progress-card .course-badges .badge {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.6rem;
+}
+
+.course-progress-card .course-stats {
+    font-size: 0.875rem;
+}
+
+.course-progress-card .btn {
+    font-size: 0.875rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .progress-stat-card {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .progress-stat-card .stat-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .progress-stat-card .stat-number {
+        font-size: 2rem;
+    }
+    
+    .course-progress-card {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+}
+
+/* Learning section header */
+.card-header h5 {
+    font-weight: 600;
+    color: #2d3748;
+}
+
+/* Progress bar enhancements */
+.progress {
+    border-radius: 10px;
+    background-color: #e9ecef;
+}
+
+.progress-bar {
+    border-radius: 10px;
+}
+
+/* Empty state styling */
+.text-center.py-4 {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    border: 2px dashed #dee2e6;
+}
+
+.text-center.py-4:hover {
+    border-color: #007bff;
+    background: linear-gradient(135deg, #e3f2fd 0%, #f8f9fa 100%);
+}
+</style>
 
 <script>
 function showProfileForm() {
