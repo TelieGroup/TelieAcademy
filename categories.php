@@ -58,8 +58,8 @@ if ($selectedCategory && $isLoggedIn) {
 }
 
 // Set page variables for head component
-$pageTitle = $currentCategory ? htmlspecialchars($currentCategory['name']) : 'All Categories';
-$pageDescription = 'Browse tutorials by category. Learn JavaScript, React, Python, and more.';
+$pageTitle = $currentCategory ? htmlspecialchars($currentCategory['name']) : 'Academic Disciplines';
+$pageDescription = 'Explore learning materials organized by academic disciplines and subject areas.';
 
 include 'includes/head.php';
 ?>
@@ -72,16 +72,16 @@ include 'includes/head.php';
                 <div class="col-12 text-center">
                     <h1 class="display-4 fw-bold mb-4">
                         <?php if ($currentCategory): ?>
-                            <?php echo htmlspecialchars($currentCategory['name']); ?> Tutorials
+                            <?php echo htmlspecialchars($currentCategory['name']); ?> Learning Materials
                         <?php else: ?>
-                            Browse by Category
+                            Academic Disciplines
                         <?php endif; ?>
                     </h1>
                     <?php if ($currentCategory): ?>
                     <p class="lead text-muted"><?php echo htmlspecialchars($currentCategory['description']); ?></p>
-                    <p class="text-muted"><?php echo $currentCategory['post_count']; ?> tutorials available</p>
+                    <p class="text-muted"><?php echo $currentCategory['post_count']; ?> learning resources available</p>
                     <?php else: ?>
-                    <p class="lead text-muted">Explore tutorials organized by topic and skill level</p>
+                    <p class="lead text-muted">Explore educational content organized by academic disciplines and subject areas</p>
                     <?php endif; ?>
                 </div>
             </div>
@@ -95,7 +95,7 @@ include 'includes/head.php';
                 <div class="col-12">
                     <div class="d-flex flex-wrap justify-content-center gap-2">
                                                  <a href="categories" class="btn <?php echo !$selectedCategory ? 'btn-primary' : 'btn-outline-primary'; ?>">
-                            All Categories
+                            All Disciplines
                         </a>
                         <?php foreach ($categories as $cat): ?>
                                                  <a href="categories?category=<?php echo $cat['slug']; ?>" 
@@ -118,7 +118,7 @@ include 'includes/head.php';
                 <div class="col-lg-8">
                     <h5 class="mb-3">
                         <i class="fas fa-chart-line me-2 text-primary"></i>
-                        Your Learning Progress in <?php echo htmlspecialchars($currentCategory['name']); ?>
+                        Your Academic Progress in <?php echo htmlspecialchars($currentCategory['name']); ?>
                     </h5>
                     <div class="learning-stats">
                         <?php
@@ -154,7 +154,7 @@ include 'includes/head.php';
                                     </div>
                                     <div class="insight-content">
                                         <div class="insight-number"><?php echo $totalCategoryPosts; ?></div>
-                                        <div class="insight-label">Course Lessons</div>
+                                        <div class="insight-label">Academic Modules</div>
                                     </div>
                                 </div>
                             </div>
@@ -165,7 +165,7 @@ include 'includes/head.php';
                                     </div>
                                     <div class="insight-content">
                                         <div class="insight-number"><?php echo $completedCategoryPosts; ?></div>
-                                        <div class="insight-label">Completed</div>
+                                        <div class="insight-label">Modules Completed</div>
                                     </div>
                                 </div>
                             </div>
@@ -176,7 +176,7 @@ include 'includes/head.php';
                                     </div>
                                     <div class="insight-content">
                                         <div class="insight-number"><?php echo $categoryProgress; ?>%</div>
-                                        <div class="insight-label">Progress</div>
+                                        <div class="insight-label">Academic Achievement</div>
                                     </div>
                                 </div>
                             </div>
@@ -188,7 +188,7 @@ include 'includes/head.php';
                                 <div class="progress-bar bg-primary" style="width: <?php echo $categoryProgress; ?>%"></div>
                             </div>
                             <small class="text-muted mt-2 d-block text-center">
-                                <?php echo $completedCategoryPosts; ?> of <?php echo $totalCategoryPosts; ?> lessons completed
+                                <?php echo $completedCategoryPosts; ?> of <?php echo $totalCategoryPosts; ?> modules completed
                             </small>
                         </div>
                         <?php endif; ?>
@@ -196,16 +196,16 @@ include 'includes/head.php';
                 </div>
                 <div class="col-lg-4">
                     <div class="learning-actions">
-                        <h6 class="mb-3">Quick Actions</h6>
+                        <h6 class="mb-3">Academic Dashboard</h6>
                         <a href="profile" class="btn btn-outline-primary btn-sm mb-2 w-100">
                             <i class="fas fa-user-graduate me-1"></i>View My Progress
                         </a>
                         <a href="courses" class="btn btn-outline-success btn-sm mb-2 w-100">
-                            <i class="fas fa-list me-1"></i>Browse All Courses
+                            <i class="fas fa-list me-1"></i>Explore All Programs
                         </a>
                         <?php if ($inProgressCategoryPosts > 0): ?>
                             <a href="posts" class="btn btn-outline-warning btn-sm w-100">
-                                <i class="fas fa-play me-1"></i>Continue Learning
+                                <i class="fas fa-play me-1"></i>Resume Studies
                             </a>
                         <?php endif; ?>
                     </div>
@@ -249,9 +249,9 @@ include 'includes/head.php';
                 <?php if (empty($posts)): ?>
                 <div class="col-12 text-center py-5">
                     <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
-                    <h3 class="text-muted">No tutorials found</h3>
-                    <p class="text-muted">No tutorials available in this category yet.</p>
-                    <a href="categories" class="btn btn-primary">Browse All Categories</a>
+                    <h3 class="text-muted">No learning materials found</h3>
+                    <p class="text-muted">No educational content available in this discipline yet.</p>
+                    <a href="categories" class="btn btn-primary">Browse All Disciplines</a>
                 </div>
                 <?php else: ?>
                 <?php foreach ($posts as $post): ?>
@@ -330,7 +330,7 @@ include 'includes/head.php';
                                 <div class="progress-header">
                                     <small class="text-muted">
                                         <i class="fas fa-chart-line me-1"></i>
-                                        Your Progress
+                                        Your Academic Progress
                                     </small>
                                     <small class="progress-percentage">
                                         <?php echo $post['user_progress']['progress_percentage'] ?? 0; ?>%
@@ -353,15 +353,15 @@ include 'includes/head.php';
                                 <div class="status-info">
                                     <small class="text-primary">
                                         <i class="fas fa-play-circle me-1"></i>
-                                        Part of <?php echo htmlspecialchars($post['course_context']['title']); ?> course
+                                        Part of <?php echo htmlspecialchars($post['course_context']['title']); ?> program
                                     </small>
                                     <?php if ($isLoggedIn): ?>
                                         <a href="post.php?slug=<?php echo $post['slug']; ?>" class="btn btn-sm btn-outline-primary mt-2">
-                                            <i class="fas fa-play me-1"></i>Start Learning
+                                            <i class="fas fa-play me-1"></i>Begin Studies
                                         </a>
                                     <?php else: ?>
                                         <a href="post.php?slug=<?php echo $post['slug']; ?>" class="btn btn-sm btn-outline-secondary mt-2">
-                                            <i class="fas fa-eye me-1"></i>View Tutorial
+                                            <i class="fas fa-eye me-1"></i>View Material
                                         </a>
                                     <?php endif; ?>
                                 </div>
@@ -381,8 +381,8 @@ include 'includes/head.php';
         <div class="container">
             <div class="row justify-content-center">
                 <div class="col-md-8 text-center">
-                    <h3 class="mb-4">Stay Updated with Latest Tutorials</h3>
-                    <p class="text-muted mb-4">Get notified when we publish new tutorials in your favorite categories.</p>
+                    <h3 class="mb-4">Stay Connected with Telie Academy</h3>
+                    <p class="text-muted mb-4">Get notified when we publish new learning materials in your preferred academic disciplines.</p>
                     <div class="newsletter-form">
                         <div class="input-group mb-3">
                             <input type="email" class="form-control" id="newsletterEmail" placeholder="Enter your email address">

@@ -101,10 +101,9 @@ include 'includes/head.php';
                 <i class="fas fa-crown me-2"></i>
                 <strong>Premium Access Required:</strong> This content is only available to premium users. 
                 <?php if ($isLoggedIn): ?>
-                    <a href="#" class="alert-link" onclick="showUpgradeInfo()">Upgrade to Premium</a> to access all materials and features.
+                    <a href="#" class="alert-link" data-bs-toggle="modal" data-bs-target="#newsletterModal">Upgrade to Premium</a> to access all materials and features.
                 <?php else: ?>
-                    <a href="#" class="alert-link" data-bs-toggle="modal" data-bs-target="#loginModal">Login</a> or 
-                    <a href="#" class="alert-link" data-bs-toggle="modal" data-bs-target="#registerModal">Register</a> to upgrade to premium.
+                    <a href="#" class="alert-link" data-bs-toggle="modal" data-bs-target="#newsletterModal">Subscribe to Premium</a> to access all materials and features.
                 <?php endif; ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
@@ -118,29 +117,29 @@ include 'includes/head.php';
             <div class="col-lg-10">
                 <div class="hero-content-modern">
                     <div class="hero-icon-modern mb-4">
-                        <i class="fas fa-rocket"></i>
+                        <i class="fas fa-graduation-cap"></i>
                         </div>
                     <h1 class="hero-title-modern mb-4">
-                        <span class="text-gradient">Learn Modern Web Development</span>
+                        <span class="text-gradient">Welcome to Telie Academy</span>
                     </h1>
                     <p class="hero-subtitle-modern mb-5">
-                        Master JavaScript, React, Python, and more with our comprehensive tutorials designed for developers and students.
+                        Your gateway to premium learning materials, comprehensive courses, and expert tutorials. Access exclusive content designed to accelerate your learning journey.
                     </p>
                     
                     <div class="hero-actions-modern mb-5">
                         <?php if (!empty($coursesWithProgress)): ?>
-                            <a href="course-view?course=javascript-learning-journey" class="btn btn-primary btn-lg me-3 hero-btn-primary">
-                                <i class="fas fa-graduation-cap me-2"></i>Start JavaScript Course
+                            <a href="courses" class="btn btn-primary btn-lg me-3 hero-btn-primary">
+                                <i class="fas fa-graduation-cap me-2"></i>Explore Courses
                             </a>
-                            <a href="courses" class="btn btn-outline-light btn-lg hero-btn-secondary">
-                                <i class="fas fa-book me-2"></i>View All Courses
+                            <a href="#featured-posts" class="btn btn-outline-light btn-lg hero-btn-secondary">
+                                <i class="fas fa-star me-2"></i>Featured Content
                             </a>
                         <?php else: ?>
-                            <a href="#featured-posts" class="btn btn-primary btn-lg me-3 hero-btn-primary">
-                                <i class="fas fa-play me-2"></i>Start Learning
+                            <a href="courses" class="btn btn-primary btn-lg me-3 hero-btn-primary">
+                                <i class="fas fa-graduation-cap me-2"></i>Browse Courses
                             </a>
-                            <a href="categories" class="btn btn-outline-light btn-lg hero-btn-secondary">
-                                <i class="fas fa-folder me-2"></i>Browse Categories
+                            <a href="#featured-posts" class="btn btn-outline-light btn-lg hero-btn-secondary">
+                                <i class="fas fa-star me-2"></i>Featured Content
                             </a>
                         <?php endif; ?>
                         </div>
@@ -149,7 +148,7 @@ include 'includes/head.php';
                     <div class="hero-search-container mb-5">
                         <form action="search" method="GET" class="hero-search-form">
                             <div class="input-group">
-                                <input type="text" class="form-control form-control-lg" name="q" placeholder="Search tutorials..." aria-label="Search tutorials">
+                                <input type="text" class="form-control form-control-lg" name="q" placeholder="Search courses, materials, and tutorials..." aria-label="Search courses, materials, and tutorials">
                                 <button class="btn btn-primary btn-lg" type="submit">
                                     <i class="fas fa-search me-2"></i>Search
                                 </button>
@@ -162,25 +161,25 @@ include 'includes/head.php';
                             <div class="col-md-3">
                                 <div class="stat-item-modern">
                                     <div class="stat-number-modern"><?php echo $totalPosts; ?>+</div>
-                                    <div class="stat-label-modern">Tutorials</div>
+                                    <div class="stat-label-modern">Learning Resources</div>
                                 </div>
                                     </div>
                             <div class="col-md-3">
                                 <div class="stat-item-modern">
                                     <div class="stat-number-modern"><?php echo count($categories); ?></div>
-                                    <div class="stat-label-modern">Categories</div>
+                                    <div class="stat-label-modern">Subject Areas</div>
                                 </div>
                                     </div>
                             <div class="col-md-3">
                                 <div class="stat-item-modern">
                                     <div class="stat-number-modern"><?php echo count($popularTags); ?></div>
-                                    <div class="stat-label-modern">Topics</div>
+                                    <div class="stat-label-modern">Learning Topics</div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="stat-item-modern">
                                     <div class="stat-number-modern"><?php echo $isPremium ? 'Premium' : 'Free'; ?></div>
-                                    <div class="stat-label-modern">Access</div>
+                                    <div class="stat-label-modern">Membership</div>
                                     </div>
                                 </div>
                             </div>
@@ -197,9 +196,9 @@ include 'includes/head.php';
         <div class="container">
             <div class="section-header text-center mb-5">
                 <h2 class="section-title-modern">
-                    <i class="fas fa-graduation-cap me-3 text-primary"></i>Learning Paths
+                    <i class="fas fa-road me-3 text-primary"></i>Your Learning Journey
                 </h2>
-                <p class="section-subtitle-modern">Structured courses designed for progressive learning</p>
+                <p class="section-subtitle-modern">Structured academic programs designed for your educational advancement</p>
             </div>
             
             <div class="row">
@@ -291,7 +290,7 @@ include 'includes/head.php';
                 <div class="col-lg-8">
                     <h5 class="mb-3">
                         <i class="fas fa-chart-line me-2 text-primary"></i>
-                        Your Learning Progress
+                        Your Academic Progress
                     </h5>
                     <div class="progress-overview-grid">
                         <?php
@@ -320,7 +319,7 @@ include 'includes/head.php';
                                     </div>
                                     <div class="stat-content">
                                         <div class="stat-number"><?php echo $totalLessons; ?></div>
-                                        <div class="stat-label">Total Lessons</div>
+                                        <div class="stat-label">Total Modules</div>
                                     </div>
                                 </div>
                             </div>
@@ -331,7 +330,7 @@ include 'includes/head.php';
                                     </div>
                                     <div class="stat-content">
                                         <div class="stat-number"><?php echo $completedLessons; ?></div>
-                                        <div class="stat-label">Completed</div>
+                                        <div class="stat-label">Modules Completed</div>
                                     </div>
                                 </div>
                             </div>
@@ -342,7 +341,7 @@ include 'includes/head.php';
                                     </div>
                                     <div class="stat-content">
                                         <div class="stat-number"><?php echo $overallProgress; ?>%</div>
-                                        <div class="stat-label">Overall Progress</div>
+                                        <div class="stat-label">Academic Achievement</div>
                                     </div>
                                 </div>
                             </div>
@@ -354,7 +353,7 @@ include 'includes/head.php';
                                 <div class="progress-bar bg-primary" style="width: <?php echo $overallProgress; ?>%"></div>
                             </div>
                             <small class="text-muted mt-2 d-block text-center">
-                                <?php echo $completedLessons; ?> of <?php echo $totalLessons; ?> lessons completed
+                                <?php echo $completedLessons; ?> of <?php echo $totalLessons; ?> modules completed
                             </small>
                         </div>
                         <?php endif; ?>
@@ -362,16 +361,16 @@ include 'includes/head.php';
                 </div>
                 <div class="col-lg-4">
                     <div class="learning-actions-card">
-                        <h6 class="mb-3">Quick Actions</h6>
+                        <h6 class="mb-3">Academic Dashboard</h6>
                         <a href="profile" class="btn btn-outline-primary btn-sm mb-2 w-100">
                             <i class="fas fa-user-graduate me-1"></i>View My Profile
                         </a>
                         <a href="courses" class="btn btn-outline-success btn-sm mb-2 w-100">
-                            <i class="fas fa-list me-1"></i>Browse All Courses
+                            <i class="fas fa-list me-1"></i>Explore All Programs
                         </a>
                         <?php if ($inProgressLessons > 0): ?>
                             <a href="posts" class="btn btn-outline-warning btn-sm w-100">
-                                <i class="fas fa-play me-1"></i>Continue Learning
+                                <i class="fas fa-play me-1"></i>Resume Studies
                             </a>
                         <?php endif; ?>
                     </div>
@@ -386,9 +385,9 @@ include 'includes/head.php';
         <div class="container">
         <div class="section-header text-center mb-5">
             <h2 class="section-title-modern">
-                <i class="fas fa-star me-3 text-warning"></i>Featured Tutorials
+                <i class="fas fa-star me-3 text-warning"></i>Featured Learning Materials
             </h2>
-            <p class="section-subtitle-modern">Hand-picked tutorials to get you started</p>
+            <p class="section-subtitle-modern">Curated educational content to enhance your academic journey</p>
             </div>
             
         <div class="featured-posts-grid">
@@ -472,7 +471,7 @@ include 'includes/head.php';
                                 <div class="progress-header">
                                     <small class="text-muted">
                                         <i class="fas fa-chart-line me-1"></i>
-                                        Your Progress
+                                        Your Academic Progress
                                     </small>
                                     <small class="progress-percentage">
                                         <?php echo $post['user_progress']['progress_percentage'] ?? 0; ?>%
@@ -576,7 +575,7 @@ include 'includes/head.php';
             
         <div class="text-center mt-5">
                             <a href="posts" class="btn btn-primary btn-lg view-all-btn">
-                <i class="fas fa-arrow-right me-2"></i>View All Tutorials
+                <i class="fas fa-arrow-right me-2"></i>Explore All Materials
             </a>
         </div>
         </div>
@@ -590,12 +589,12 @@ include 'includes/head.php';
             <div class="d-flex justify-content-between align-items-center">
                         <div>
                     <h2 class="section-title-modern">
-                        <i class="fas fa-fire me-3 text-danger"></i>🔥 Trending Tutorials
+                        <i class="fas fa-fire me-3 text-danger"></i>🔥 Popular Learning Materials
                     </h2>
-                    <p class="section-subtitle-modern">Most popular tutorials this month</p>
+                    <p class="section-subtitle-modern">Most accessed educational content this month</p>
                 </div>
                 <a href="posts?sort=trending" class="btn btn-outline-primary btn-lg">
-                    <i class="fas fa-fire me-2"></i>View All Trending
+                    <i class="fas fa-fire me-2"></i>View All Popular
                 </a>
                 </div>
             </div>
@@ -793,9 +792,9 @@ include 'includes/head.php';
         <div class="container">
             <div class="section-header text-center mb-5">
                 <h2 class="section-title-modern">
-                    <i class="fas fa-lightbulb me-3 text-warning"></i>Recommended Next Steps
+                    <i class="fas fa-lightbulb me-3 text-warning"></i>Academic Recommendations
                 </h2>
-                <p class="section-subtitle-modern">Based on your learning progress, here are some suggestions</p>
+                <p class="section-subtitle-modern">Personalized suggestions based on your academic progress</p>
             </div>
             
             <div class="recommendations-grid">
@@ -860,10 +859,10 @@ include 'includes/head.php';
                     <div class="text-center">
                         <div class="completion-celebration">
                             <i class="fas fa-trophy fa-3x text-warning mb-3"></i>
-                            <h5 class="text-success">Congratulations!</h5>
-                            <p class="text-muted">You've completed all your current lessons.</p>
+                            <h5 class="text-success">Academic Excellence!</h5>
+                            <p class="text-muted">You've completed all your current academic modules.</p>
                             <a href="courses" class="btn btn-warning">
-                                <i class="fas fa-plus me-1"></i>Explore New Courses
+                                <i class="fas fa-plus me-1"></i>Explore New Programs
                             </a>
                         </div>
                     </div>
@@ -878,9 +877,9 @@ include 'includes/head.php';
         <div class="container">
         <div class="section-header text-center mb-5">
             <h2 class="section-title-modern">
-                <i class="fas fa-th-large me-3 text-primary"></i>Explore Categories
+                <i class="fas fa-th-large me-3 text-primary"></i>Academic Disciplines
             </h2>
-            <p class="section-subtitle-modern">Find tutorials by topic and skill level</p>
+            <p class="section-subtitle-modern">Explore learning materials by subject area and academic level</p>
             </div>
             
         <div class="categories-grid">
@@ -914,8 +913,8 @@ include 'includes/head.php';
                     <div class="newsletter-icon mb-4">
                         <i class="fas fa-envelope-open-text fa-3x text-primary"></i>
                     </div>
-                    <h3 class="mb-3">Stay Updated with New Tutorials</h3>
-                    <p class="text-muted mb-4">Get the latest tutorials, coding tips, and tech insights delivered directly to your inbox.</p>
+                    <h3 class="mb-3">Stay Connected with Telie Academy</h3>
+                    <p class="text-muted mb-4">Receive updates on new learning materials, academic insights, and exclusive educational content delivered to your inbox.</p>
                     
                     <div class="newsletter-form-modern">
                         <div class="input-group">
@@ -932,13 +931,13 @@ include 'includes/head.php';
                             <div class="col-md-4">
                                 <div class="benefit-item">
                                     <i class="fas fa-bell text-primary mb-2"></i>
-                                    <small>Weekly Updates</small>
+                                    <small>Academic Updates</small>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="benefit-item">
                                     <i class="fas fa-gift text-primary mb-2"></i>
-                                    <small>Exclusive Content</small>
+                                    <small>Premium Materials</small>
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -1466,13 +1465,5 @@ include 'includes/head.php';
         }
     });
     
-    // Function to show upgrade information
-    function showUpgradeInfo() {
-        alert('Premium Upgrade Information:\n\n' +
-              '• Access to all course materials\n' +
-              '• Download and preview all files\n' +
-              '• Advanced learning features\n' +
-              '• Priority support\n\n' +
-              'Please contact support for upgrade options.');
-    }
+
     </script> 

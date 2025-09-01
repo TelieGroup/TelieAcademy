@@ -169,7 +169,7 @@ include 'includes/head.php';
                             <strong>Premium Required:</strong> Upgrade to access course materials
                         </div>
                         <br>
-                        <a href="subscription-settings" class="btn btn-warning btn-lg">
+                        <a href="#" class="btn btn-warning btn-lg" data-bs-toggle="modal" data-bs-target="#newsletterModal">
                             <i class="fas fa-crown me-2"></i>Upgrade to Premium
                         </a>
                     </div>
@@ -264,7 +264,7 @@ include 'includes/head.php';
                                 </p>
                                 
                                 <?php if ($isLoggedIn): ?>
-                                    <a href="subscription-settings" class="btn btn-warning btn-lg">
+                                    <a href="#" class="btn btn-warning btn-lg" data-bs-toggle="modal" data-bs-target="#newsletterModal">
                                         <i class="fas fa-crown me-2"></i>Upgrade to Premium
                                     </a>
                                 <?php else: ?>
