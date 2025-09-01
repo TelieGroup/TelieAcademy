@@ -28,7 +28,7 @@ if ($currentUser['is_admin']) {
 
 if (!$hasAccess) {
     // Log access attempt
-    error_log("Unauthorized download attempt by user ID: {$currentUser['id']} (Premium: {$currentUser['is_premium']}, Admin: {$currentUser['is_admin']})");
+    error_log("Unauthorized preview attempt by user ID: {$currentUser['id']} (Premium: {$currentUser['is_premium']}, Admin: {$currentUser['is_admin']})");
     
     header('Location: index?premium_required=1');
     exit;
@@ -79,30 +79,21 @@ if (!file_exists($filePath)) {
     exit;
 }
 
-// Check if this is a preview request
-$isPreview = isset($_GET['preview']) && $_GET['preview'] == '1';
-
-if (!$isPreview) {
-    // Record user access and increment download count only for actual downloads
-    try {
-        $course->recordUserAccess($currentUser['id'], $materialId);
-        $course->incrementDownloadCount($materialId);
-        
-        // Log successful download
-        error_log("Material downloaded successfully - User: {$currentUser['id']} ({$currentUser['username']}), Type: $accessType, Material: {$material['title']} (ID: $materialId)");
-    } catch (Exception $e) {
-        error_log("Error recording download: " . $e->getMessage());
-        // Continue with download even if tracking fails
-    }
-} else {
-    // Log preview access
+// Record preview access and increment preview count
+try {
+    $course->recordUserAccess($currentUser['id'], $materialId);
+    $course->incrementPreviewCount($materialId);
+    
+    // Log successful preview
     error_log("Material preview accessed - User: {$currentUser['id']} ({$currentUser['username']}), Type: $accessType, Material: {$material['title']} (ID: $materialId)");
+} catch (Exception $e) {
+    error_log("Error recording preview: " . $e->getMessage());
+    // Continue with preview even if tracking fails
 }
 
 // Set headers for file serving
 $fileName = $material['file_name'];
 $fileSize = filesize($filePath);
-$fileType = $material['file_type'];
 $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
 
 // Determine MIME type
@@ -125,21 +116,11 @@ $mimeTypes = [
 
 $mimeType = $mimeTypes[strtolower($fileExtension)] ?? 'application/octet-stream';
 
-// Set appropriate headers based on preview or download
-if ($isPreview) {
-    // For preview, display in browser
-    header('Content-Type: ' . $mimeType);
-    header('Content-Disposition: inline; filename="' . $fileName . '"');
-    header('Content-Length: ' . $fileSize);
-    header('Cache-Control: public, max-age=3600'); // Cache for 1 hour
-} else {
-    // For download, force download
-    header('Content-Type: ' . $mimeType);
-    header('Content-Disposition: attachment; filename="' . $fileName . '"');
-    header('Content-Length: ' . $fileSize);
-    header('Cache-Control: no-cache, must-revalidate');
-    header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
-}
+// Set headers for preview (display in browser)
+header('Content-Type: ' . $mimeType);
+header('Content-Disposition: inline; filename="' . $fileName . '"');
+header('Content-Length: ' . $fileSize);
+header('Cache-Control: public, max-age=3600'); // Cache for 1 hour
 
 // Output file content
 readfile($filePath);

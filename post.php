@@ -59,17 +59,27 @@ if ($postData && !empty($postData['course_module_id'])) {
             }
         }
         
-        // Get user progress if logged in
+        // Check enrollment if user is logged in
+        $courseEnrollment = null;
         if ($isLoggedIn) {
             $currentUser = $user->getCurrentUser();
+            $courseEnrollment = $course->getUserCourseEnrollment($currentUser['id'], $courseContext['id']);
+            
+            // If not enrolled, redirect to course page with enrollment message
+            if (!$courseEnrollment) {
+                header('Location: course-view?course=' . $courseContext['slug'] . '&error=enrollment_required');
+                exit;
+            }
+            
             $progressData = $course->getUserCourseProgress($currentUser['id'], $courseContext['id']);
             $userProgress = isset($progressData[$postData['id']]) ? $progressData[$postData['id']] : null;
             
             // Get materials related to this lesson
             $lessonMaterials = $course->getMaterialsByLesson($postData['id'], $currentUser['id']);
         } else {
-            // Get materials without user-specific data
-            $lessonMaterials = $course->getMaterialsByLesson($postData['id']);
+            // If not logged in, redirect to course page
+            header('Location: course-view?course=' . $courseContext['slug'] . '&error=login_required');
+            exit;
         }
     }
 }
@@ -747,6 +757,27 @@ include 'includes/head.php';
     .material-footer .btn:hover {
         transform: translateY(-1px);
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .material-footer .btn-group {
+        width: 100%;
+    }
+    
+    .material-footer .btn-group .btn {
+        flex: 1;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .material-footer .btn-group .btn:first-child {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+    
+    .material-footer .btn-group .btn:last-child {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
     }
     
     /* Responsive material cards */
@@ -2512,6 +2543,10 @@ include 'includes/head.php';
                                                 <i class="fas fa-download me-1"></i>
                                                 <?php echo number_format($material['download_count']); ?> downloads
                                             </small>
+                                            <small class="text-muted ms-2">
+                                                <i class="fas fa-eye me-1"></i>
+                                                <?php echo number_format($material['preview_count'] ?? 0); ?> previews
+                                            </small>
                                             <small class="text-muted ms-3">
                                                 <i class="fas fa-hdd me-1"></i>
                                                 <?php echo number_format($material['file_size'] / 1024, 1); ?> KB
@@ -2544,10 +2579,19 @@ include 'includes/head.php';
                                 
                                 <div class="material-footer">
                                     <?php if ($isLoggedIn): ?>
-                                        <a href="download-material?id=<?php echo $material['id']; ?>" 
-                                           class="btn btn-primary btn-sm w-100">
+                                        <div class="btn-group btn-group-sm w-100" role="group">
+                                                                                         <a href="preview_material?id=<?php echo $material['id']; ?>" 
+                                                class="btn btn-outline-success btn-sm"
+                                                title="Preview Material"
+                                                target="_blank">
+                                                <i class="fas fa-eye me-1"></i>Preview
+                                            </a>
+                                            <a href="download_material?id=<?php echo $material['id']; ?>" 
+                                               class="btn btn-primary btn-sm"
+                                               title="Download Material">
                                             <i class="fas fa-download me-1"></i>Download
                                         </a>
+                                        </div>
                                     <?php else: ?>
                                         <button class="btn btn-outline-secondary btn-sm w-100" 
                                                 onclick="showLoginModal()">

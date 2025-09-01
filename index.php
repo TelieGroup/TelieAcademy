@@ -97,11 +97,15 @@ include 'includes/head.php';
 
     <?php if (isset($_GET['premium_required'])): ?>
         <div class="container mt-3">
-            <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
                 <i class="fas fa-crown me-2"></i>
-                <strong>Premium Required:</strong> This content is only available to premium users. 
-                <a href="#" class="alert-link" data-bs-toggle="modal" data-bs-target="#loginModal">Login</a> or 
-                <a href="#" class="alert-link" data-bs-toggle="modal" data-bs-target="#registerModal">Register</a> to upgrade.
+                <strong>Premium Access Required:</strong> This content is only available to premium users. 
+                <?php if ($isLoggedIn): ?>
+                    <a href="#" class="alert-link" onclick="showUpgradeInfo()">Upgrade to Premium</a> to access all materials and features.
+                <?php else: ?>
+                    <a href="#" class="alert-link" data-bs-toggle="modal" data-bs-target="#loginModal">Login</a> or 
+                    <a href="#" class="alert-link" data-bs-toggle="modal" data-bs-target="#registerModal">Register</a> to upgrade to premium.
+                <?php endif; ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         </div>
@@ -1461,4 +1465,14 @@ include 'includes/head.php';
             console.log('Alternative vote buttons (.vote-btn) found:', altVoteButtons.length);
         }
     });
+    
+    // Function to show upgrade information
+    function showUpgradeInfo() {
+        alert('Premium Upgrade Information:\n\n' +
+              '• Access to all course materials\n' +
+              '• Download and preview all files\n' +
+              '• Advanced learning features\n' +
+              '• Priority support\n\n' +
+              'Please contact support for upgrade options.');
+    }
     </script> 

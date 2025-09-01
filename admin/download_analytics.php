@@ -69,6 +69,13 @@ include '../includes/head.php';
     padding: 0.25rem 0.5rem;
 }
 
+.preview-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    background-color: #17a2b8;
+    color: white;
+}
+
 /* Dark Mode Support */
 .dark-mode .container-fluid {
     background: #1a1a1a;
@@ -184,21 +191,26 @@ include '../includes/head.php';
                 <div>
                     <h1 class="h3 mb-0">
                         <i class="fas fa-chart-line text-primary"></i>
-                        Download Analytics
+                        Material Analytics
                         <?php
                         try {
                             $downloadsToday = $downloadStats['downloads_today'] ?? 0;
                             $downloadsWeek = $downloadStats['downloads_week'] ?? 0;
+                            $totalPreviews = $downloadStats['total_previews'] ?? 0;
+                            $previewsToday = $downloadStats['previews_today'] ?? 0;
                             if ($downloadsToday > 0):
                             ?>
-                            <span class="badge bg-success ms-2"><?php echo $downloadsToday; ?> Today</span>
+                            <span class="badge bg-success ms-2"><?php echo $downloadsToday; ?> Downloads Today</span>
                             <?php endif; ?>
-                            <?php if ($downloadsWeek > 0): ?>
-                            <span class="badge bg-warning text-dark ms-2"><?php echo $downloadsWeek; ?> This Week</span>
+                            <?php if ($previewsToday > 0): ?>
+                            <span class="badge bg-info ms-2"><?php echo $previewsToday; ?> Previews Today</span>
+                            <?php endif; ?>
+                            <?php if ($totalPreviews > 0): ?>
+                            <span class="badge bg-warning text-dark ms-2"><?php echo number_format($totalPreviews); ?> Total Previews</span>
                             <?php endif; ?>
                         <?php } catch (Exception $e) { /* Silently fail */ } ?>
                     </h1>
-                    <p class="text-muted mb-0">Track and analyze course material downloads</p>
+                    <p class="text-muted mb-0">Track and analyze course material downloads and previews</p>
                 </div>
                 <div>
                     <a href="index" class="btn btn-outline-secondary">
@@ -222,9 +234,29 @@ include '../includes/head.php';
                 <div class="col-xl-3 col-md-6 mb-4">
                     <div class="card analytics-card">
                         <div class="card-body text-center">
+                            <div class="stat-number"><?php echo number_format($downloadStats['total_previews']); ?></div>
+                            <div class="stat-label">Total Previews</div>
+                            <i class="fas fa-eye fa-2x text-info mt-2"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card analytics-card">
+                        <div class="card-body text-center">
                             <div class="stat-number"><?php echo number_format($downloadStats['downloads_today']); ?></div>
                             <div class="stat-label">Downloads Today</div>
                             <i class="fas fa-calendar-day fa-2x text-success mt-2"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card analytics-card">
+                        <div class="card-body text-center">
+                            <div class="stat-number"><?php echo number_format($downloadStats['previews_today']); ?></div>
+                            <div class="stat-label">Previews Today</div>
+                            <i class="fas fa-eye fa-2x text-info mt-2"></i>
                         </div>
                     </div>
                 </div>
@@ -242,9 +274,63 @@ include '../includes/head.php';
                 <div class="col-xl-3 col-md-6 mb-4">
                     <div class="card analytics-card">
                         <div class="card-body text-center">
+                            <div class="stat-number"><?php echo number_format($downloadStats['previews_week']); ?></div>
+                            <div class="stat-label">Previews This Week</div>
+                            <i class="fas fa-calendar-week fa-2x text-info mt-2"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Statistics Row -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card analytics-card">
+                        <div class="card-body text-center">
                             <div class="stat-number"><?php echo count($popularMaterials); ?></div>
                             <div class="stat-label">Active Materials</div>
-                            <i class="fas fa-file-alt fa-2x text-info mt-2"></i>
+                            <i class="fas fa-file-alt fa-2x text-secondary mt-2"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card analytics-card">
+                        <div class="card-body text-center">
+                            <?php 
+                            $totalEngagement = ($downloadStats['total_downloads'] ?? 0) + ($downloadStats['total_previews'] ?? 0);
+                            $engagementRate = count($popularMaterials) > 0 ? round($totalEngagement / count($popularMaterials), 1) : 0;
+                            ?>
+                            <div class="stat-number"><?php echo number_format($engagementRate); ?></div>
+                            <div class="stat-label">Avg Engagement per Material</div>
+                            <i class="fas fa-chart-line fa-2x text-success mt-2"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card analytics-card">
+                        <div class="card-body text-center">
+                            <?php 
+                            $previewToDownloadRatio = ($downloadStats['total_downloads'] ?? 0) > 0 ? 
+                                round((($downloadStats['total_previews'] ?? 0) / ($downloadStats['total_downloads'] ?? 1)) * 100, 1) : 0;
+                            ?>
+                            <div class="stat-number"><?php echo $previewToDownloadRatio; ?>%</div>
+                            <div class="stat-label">Preview to Download Ratio</div>
+                            <i class="fas fa-percentage fa-2x text-warning mt-2"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card analytics-card">
+                        <div class="card-body text-center">
+                            <?php 
+                            $totalEngagement = ($downloadStats['total_downloads'] ?? 0) + ($downloadStats['total_previews'] ?? 0);
+                            ?>
+                            <div class="stat-number"><?php echo number_format($totalEngagement); ?></div>
+                            <div class="stat-label">Total Engagement</div>
+                            <i class="fas fa-users fa-2x text-primary mt-2"></i>
                         </div>
                     </div>
                 </div>
@@ -257,15 +343,52 @@ include '../includes/head.php';
                         <div class="card-header">
                             <h5 class="mb-0">
                                 <i class="fas fa-chart-bar me-2"></i>
-                                Download Distribution
+                                Material Engagement Overview
                             </h5>
                         </div>
                         <div class="card-body">
                             <div class="download-chart">
                                 <div class="text-center">
-                                    <i class="fas fa-chart-pie fa-3x mb-3"></i>
-                                    <p>Download distribution chart will be implemented here</p>
-                                    <small class="text-muted">Showing top 20 most downloaded materials</small>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <h6 class="text-primary">
+                                                    <i class="fas fa-download me-2"></i>
+                                                    Downloads: <?php echo number_format($downloadStats['total_downloads']); ?>
+                                                </h6>
+                                                <div class="progress" style="height: 20px;">
+                                                    <?php 
+                                                    $totalEngagement = ($downloadStats['total_downloads'] ?? 0) + ($downloadStats['total_previews'] ?? 0);
+                                                    $downloadPercentage = $totalEngagement > 0 ? round((($downloadStats['total_downloads'] ?? 0) / $totalEngagement) * 100) : 0;
+                                                    ?>
+                                                    <div class="progress-bar bg-primary" style="width: <?php echo $downloadPercentage; ?>%">
+                                                        <?php echo $downloadPercentage; ?>%
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <h6 class="text-info">
+                                                    <i class="fas fa-eye me-2"></i>
+                                                    Previews: <?php echo number_format($downloadStats['total_previews']); ?>
+                                                </h6>
+                                                <div class="progress" style="height: 20px;">
+                                                    <?php 
+                                                    $previewPercentage = $totalEngagement > 0 ? round((($downloadStats['total_previews'] ?? 0) / $totalEngagement) * 100) : 0;
+                                                    ?>
+                                                    <div class="progress-bar bg-info" style="width: <?php echo $previewPercentage; ?>%">
+                                                        <?php echo $previewPercentage; ?>%
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <small class="text-muted">
+                                            Total Engagement: <?php echo number_format($totalEngagement); ?> interactions across <?php echo count($popularMaterials); ?> materials
+                                        </small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -280,7 +403,7 @@ include '../includes/head.php';
                         <div class="card-header">
                             <h5 class="mb-0">
                                 <i class="fas fa-star me-2"></i>
-                                Most Popular Materials
+                                Material Performance Overview
                             </h5>
                         </div>
                         <div class="card-body">
@@ -293,6 +416,7 @@ include '../includes/head.php';
                                             <th>Module</th>
                                             <th>Course</th>
                                             <th>Downloads</th>
+                                            <th>Previews</th>
                                             <th>File Type</th>
                                             <th>Last Updated</th>
                                         </tr>
@@ -320,6 +444,12 @@ include '../includes/head.php';
                                                         </span>
                                                     </td>
                                                     <td>
+                                                        <span class="badge bg-info preview-badge">
+                                                            <i class="fas fa-eye me-1"></i>
+                                                            <?php echo number_format($material['preview_count'] ?? 0); ?>
+                                                        </span>
+                                                    </td>
+                                                    <td>
                                                         <span class="badge bg-secondary">
                                                             <?php echo strtoupper($material['file_type']); ?>
                                                         </span>
@@ -333,7 +463,7 @@ include '../includes/head.php';
                                             <?php endforeach; ?>
                                         <?php else: ?>
                                             <tr>
-                                                <td colspan="7" class="text-center text-muted py-4">
+                                                <td colspan="8" class="text-center text-muted py-4">
                                                     <i class="fas fa-inbox fa-2x mb-2"></i>
                                                     <p>No materials found</p>
                                                 </td>

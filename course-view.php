@@ -307,6 +307,28 @@ include 'includes/head.php';
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
 }
 
+.material-footer-small .btn-group {
+    width: 100%;
+}
+
+.material-footer-small .btn-group .btn {
+    flex: 1;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+}
+
+.material-footer-small .btn-group .btn:first-child {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.material-footer-small .btn-group .btn:last-child {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .course-hero {
@@ -334,6 +356,34 @@ include 'includes/head.php';
 </style>
 
 <?php include 'includes/header.php'; ?>
+
+<!-- Error Messages -->
+<?php if (isset($_GET['error'])): ?>
+    <div class="container mt-3">
+        <?php if ($_GET['error'] === 'enrollment_required'): ?>
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <i class="fas fa-graduation-cap me-2"></i>
+                <strong>Enrollment Required:</strong> You must be enrolled in this course to access its lessons. 
+                <form method="POST" action="enroll-course" class="d-inline ms-2">
+                    <input type="hidden" name="course_id" value="<?php echo $courseData['id']; ?>">
+                    <button type="submit" class="btn btn-warning btn-sm">
+                        <i class="fas fa-play me-1"></i>Enroll Now
+                    </button>
+                </form>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php elseif ($_GET['error'] === 'login_required'): ?>
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <i class="fas fa-sign-in-alt me-2"></i>
+                <strong>Login Required:</strong> Please login to access course lessons.
+                <button type="button" class="btn btn-info btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#loginModal">
+                    <i class="fas fa-sign-in-alt me-1"></i>Login
+                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+    </div>
+<?php endif; ?>
 
 <!-- Reading Progress Bar -->
 <div class="reading-progress-bar" id="readingProgressBar"></div>
@@ -455,7 +505,7 @@ include 'includes/head.php';
                                 <?php foreach ($module['posts'] as $lessonIndex => $lesson): ?>
                                     <?php
                                     $isCompleted = isset($userProgress[$lesson['id']]) && $userProgress[$lesson['id']]['completed_at'];
-                                    $isAvailable = $isLoggedIn && ($courseEnrollment || !$lesson['is_premium']);
+                                    $isAvailable = $isLoggedIn && $courseEnrollment;
                                     $isCurrent = false; // Logic to determine current lesson
                                     
                                     // Determine if this is the next lesson to take
@@ -539,7 +589,7 @@ include 'includes/head.php';
                                                         <?php elseif (!$isAvailable): ?>
                                                             <small class="text-muted">
                                                                 <i class="fas fa-lock me-1"></i>
-                                                                <?php echo !$isLoggedIn ? 'Login Required' : ($lesson['is_premium'] ? 'Premium' : 'Locked'); ?>
+                                                                <?php echo !$isLoggedIn ? 'Login Required' : (!$courseEnrollment ? 'Enrollment Required' : 'Locked'); ?>
                                                             </small>
                                                         <?php endif; ?>
                                                     </div>
@@ -555,7 +605,7 @@ include 'includes/head.php';
             <?php endif; ?>
             
             <!-- Recommended Materials Section -->
-            <?php if ($isLoggedIn && !empty($recommendedMaterials)): ?>
+            <?php if ($isLoggedIn && $courseEnrollment && !empty($recommendedMaterials)): ?>
                 <div class="recommended-materials-section mt-5">
                     <div class="section-header mb-4">
                         <h4 class="mb-2">
@@ -601,6 +651,10 @@ include 'includes/head.php';
                                                 <?php echo number_format($material['download_count']); ?> downloads
                                             </small>
                                             <small class="text-muted ms-2">
+                                                <i class="fas fa-eye me-1"></i>
+                                                <?php echo number_format($material['preview_count'] ?? 0); ?> previews
+                                            </small>
+                                            <small class="text-muted ms-2">
                                                 <i class="fas fa-layer-group me-1"></i>
                                                 <?php echo htmlspecialchars($material['module_title']); ?>
                                             </small>
@@ -608,10 +662,19 @@ include 'includes/head.php';
                                     </div>
                                     
                                     <div class="material-footer-small">
-                                        <a href="download-material?id=<?php echo $material['id']; ?>" 
-                                           class="btn btn-outline-primary btn-sm w-100">
+                                        <div class="btn-group btn-group-sm w-100" role="group">
+                                                                                         <a href="preview_material?id=<?php echo $material['id']; ?>" 
+                                                class="btn btn-outline-success btn-sm"
+                                                title="Preview Material"
+                                                target="_blank">
+                                                <i class="fas fa-eye me-1"></i>Preview
+                                            </a>
+                                            <a href="download_material?id=<?php echo $material['id']; ?>" 
+                                               class="btn btn-outline-primary btn-sm"
+                                               title="Download Material">
                                             <i class="fas fa-download me-1"></i>Download
                                         </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

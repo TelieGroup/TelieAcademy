@@ -254,16 +254,21 @@ include 'includes/head.php';
                                                     <i class="fas fa-download me-1"></i>
                                                     <?php echo $material['download_count'] ?? 0; ?> downloads
                                                 </div>
+                                                <div class="mb-1">
+                                                    <i class="fas fa-eye me-1"></i>
+                                                    <?php echo $material['preview_count'] ?? 0; ?> previews
+                                                </div>
                                                 <div>
                                                     <i class="fas fa-calendar me-1"></i>
                                                     <?php echo date('M j, Y', strtotime($material['created_at'])); ?>
                                                 </div>
                                             </div>
                                             <div class="btn-group btn-group-sm">
-                                                <a href="read_material?id=<?php echo $material['id']; ?>" 
+                                                <a href="preview_material?id=<?php echo $material['id']; ?>" 
                                                    class="btn btn-success btn-sm"
-                                                   title="Read Online">
-                                                    <i class="fas fa-eye me-1"></i>Read
+                                                   title="Preview Online"
+                                                   target="_blank">
+                                                    <i class="fas fa-eye me-1"></i>Preview
                                                 </a>
                                                 <a href="download_material?id=<?php echo $material['id']; ?>" 
                                                    class="btn btn-primary btn-sm download-btn"
@@ -306,7 +311,7 @@ include 'includes/head.php';
                                 </p>
                                 
                                 <?php if ($isLoggedIn): ?>
-                                    <a href="premium" class="btn btn-warning btn-lg">
+                                    <a href="index?premium_required=1" class="btn btn-warning btn-lg">
                                         <i class="fas fa-crown me-2"></i>Upgrade to Premium
                                     </a>
                                 <?php else: ?>

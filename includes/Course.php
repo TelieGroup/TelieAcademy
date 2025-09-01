@@ -507,6 +507,19 @@ class Course {
         }
     }
 
+    public function incrementPreviewCount($materialId) {
+        try {
+            $query = "UPDATE {$this->materialsTable} 
+                      SET preview_count = preview_count + 1 
+                      WHERE id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':id', $materialId);
+            return $stmt->execute();
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
     // User Access Methods
     public function recordUserAccess($userId, $materialId) {
         try {
@@ -612,8 +625,11 @@ class Course {
         try {
             $query = "SELECT 
                         SUM(cm.download_count) as total_downloads,
+                        SUM(cm.preview_count) as total_previews,
                         SUM(CASE WHEN DATE(cm.updated_at) = CURDATE() THEN 1 ELSE 0 END) as downloads_today,
-                        SUM(CASE WHEN cm.updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as downloads_week
+                        SUM(CASE WHEN cm.updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as downloads_week,
+                        SUM(CASE WHEN DATE(cm.updated_at) = CURDATE() THEN cm.preview_count ELSE 0 END) as previews_today,
+                        SUM(CASE WHEN cm.updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN cm.preview_count ELSE 0 END) as previews_week
                       FROM {$this->materialsTable} cm
                       WHERE cm.is_active = 1";
             $stmt = $this->conn->prepare($query);
@@ -624,22 +640,31 @@ class Course {
             if (!$result) {
                 return [
                     'total_downloads' => 0,
+                    'total_previews' => 0,
                     'downloads_today' => 0,
-                    'downloads_week' => 0
+                    'downloads_week' => 0,
+                    'previews_today' => 0,
+                    'previews_week' => 0
                 ];
             }
             
             return [
                 'total_downloads' => (int)($result['total_downloads'] ?? 0),
+                'total_previews' => (int)($result['total_previews'] ?? 0),
                 'downloads_today' => (int)($result['downloads_today'] ?? 0),
-                'downloads_week' => (int)($result['downloads_week'] ?? 0)
+                'downloads_week' => (int)($result['downloads_week'] ?? 0),
+                'previews_today' => (int)($result['previews_today'] ?? 0),
+                'previews_week' => (int)($result['previews_week'] ?? 0)
             ];
         } catch (Exception $e) {
             error_log("Error getting download statistics: " . $e->getMessage());
             return [
                 'total_downloads' => 0,
+                'total_previews' => 0,
                 'downloads_today' => 0,
-                'downloads_week' => 0
+                'downloads_week' => 0,
+                'previews_today' => 0,
+                'previews_week' => 0
             ];
         }
     }
