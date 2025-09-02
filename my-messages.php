@@ -228,6 +228,113 @@ include 'includes/head.php';
         padding: 1rem 0;
     }
 }
+
+/* Dark Mode Styles for My Messages Page */
+.dark-mode .messages-container {
+    background: var(--background-color) !important;
+}
+
+.dark-mode .message-card {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: 0 2px 10px var(--shadow-color-dark) !important;
+}
+
+.dark-mode .message-card:hover {
+    box-shadow: 0 4px 20px var(--shadow-color-dark) !important;
+}
+
+.dark-mode .message-header {
+    border-bottom-color: var(--border-color) !important;
+}
+
+.dark-mode .message-subject {
+    color: var(--text-color) !important;
+}
+
+.dark-mode .message-meta {
+    color: var(--text-muted) !important;
+}
+
+.dark-mode .message-content {
+    color: var(--text-color) !important;
+}
+
+.dark-mode .replies-section {
+    background: var(--background-color) !important;
+}
+
+.dark-mode .reply-item {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+}
+
+.dark-mode .reply-content {
+    color: var(--text-color) !important;
+}
+
+.dark-mode .reply-date {
+    color: var(--text-muted) !important;
+}
+
+.dark-mode .no-messages {
+    color: var(--text-muted) !important;
+}
+
+.dark-mode .no-messages i {
+    color: var(--border-color) !important;
+}
+
+.dark-mode .page-header h1 {
+    color: var(--text-color) !important;
+}
+
+.dark-mode .page-header p {
+    color: var(--text-muted) !important;
+}
+
+.dark-mode .back-link {
+    color: #007bff !important;
+}
+
+.dark-mode .back-link:hover {
+    color: #0056b3 !important;
+}
+
+.dark-mode .text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* Dark Mode Badge Styles */
+.dark-mode .status-badge {
+    color: white !important;
+}
+
+.dark-mode .priority-badge {
+    color: white !important;
+}
+
+.dark-mode .priority-medium {
+    color: #212529 !important;
+}
+
+.dark-mode .badge {
+    color: white !important;
+}
+
+.dark-mode .badge.bg-info {
+    background-color: #17a2b8 !important;
+}
+
+/* Dark Mode Reply Author */
+.dark-mode .reply-author {
+    color: #007bff !important;
+}
+
+/* Dark Mode Small Text */
+.dark-mode small {
+    color: var(--text-muted) !important;
+}
 </style>
 
 <?php include 'includes/header.php'; ?>

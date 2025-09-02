@@ -284,6 +284,178 @@ include 'includes/head.php';
         font-size: 2rem;
     }
 }
+
+/* Dark Mode Styles for Contact Page */
+.dark-mode .contact-container {
+    background: var(--background-color) !important;
+}
+
+.dark-mode .contact-header h1 {
+    color: var(--text-color) !important;
+}
+
+.dark-mode .contact-header p {
+    color: var(--text-muted) !important;
+}
+
+.dark-mode .contact-content {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: 0 2px 10px var(--shadow-color-dark) !important;
+}
+
+.dark-mode .contact-form-section h2 {
+    color: var(--text-color) !important;
+    border-bottom-color: var(--border-color) !important;
+}
+
+.dark-mode .contact-form-section h3 {
+    color: var(--text-color) !important;
+}
+
+.dark-mode .contact-form-section p {
+    color: var(--text-muted) !important;
+}
+
+.dark-mode .contact-form-section ul {
+    color: var(--text-muted) !important;
+}
+
+.dark-mode .contact-form .form-label {
+    color: var(--text-color) !important;
+}
+
+.dark-mode .contact-form .form-control {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-color) !important;
+}
+
+.dark-mode .contact-form .form-control:focus {
+    background: var(--card-bg) !important;
+    border-color: #007bff !important;
+    color: var(--text-color) !important;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25) !important;
+}
+
+.dark-mode .contact-form .form-select {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-color) !important;
+}
+
+.dark-mode .contact-form .form-select:focus {
+    background: var(--card-bg) !important;
+    border-color: #007bff !important;
+    color: var(--text-color) !important;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25) !important;
+}
+
+.dark-mode .contact-form textarea.form-control {
+    background: var(--card-bg) !important;
+    color: var(--text-color) !important;
+}
+
+.dark-mode .contact-form .form-text {
+    color: var(--text-muted) !important;
+}
+
+.dark-mode .contact-form .form-check-label {
+    color: var(--text-color) !important;
+}
+
+.dark-mode .contact-info-section {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+}
+
+.dark-mode .contact-info-section h3 {
+    color: var(--text-color) !important;
+}
+
+.dark-mode .contact-method {
+    background: var(--background-color) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: 0 2px 8px var(--shadow-color-dark) !important;
+}
+
+.dark-mode .contact-method:hover {
+    box-shadow: 0 8px 25px var(--shadow-color-dark) !important;
+}
+
+.dark-mode .contact-method .icon {
+    color: #007bff !important;
+}
+
+.dark-mode .contact-method h4 {
+    color: var(--text-color) !important;
+}
+
+.dark-mode .contact-method p {
+    color: var(--text-muted) !important;
+}
+
+.dark-mode .contact-method a {
+    color: #007bff !important;
+}
+
+.dark-mode .contact-method a:hover {
+    color: #0056b3 !important;
+}
+
+.dark-mode .faq-section h2 {
+    color: var(--text-color) !important;
+    border-bottom-color: var(--border-color) !important;
+}
+
+.dark-mode .faq-item {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+}
+
+.dark-mode .faq-item h4 {
+    color: var(--text-color) !important;
+}
+
+.dark-mode .faq-item p {
+    color: var(--text-muted) !important;
+}
+
+.dark-mode .alert {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-color) !important;
+}
+
+.dark-mode .alert-success {
+    background: #1e4a1e !important;
+    border-color: #2d5a2d !important;
+    color: #d4edda !important;
+}
+
+.dark-mode .alert-danger {
+    background: #4a1e1e !important;
+    border-color: #5a2d2d !important;
+    color: #f8d7da !important;
+}
+
+.dark-mode .alert-info {
+    background: #1e3e4a !important;
+    border-color: #2d4d5a !important;
+    color: #d1ecf1 !important;
+}
+
+.dark-mode .text-muted {
+    color: var(--text-muted) !important;
+}
+
+.dark-mode .list-unstyled li {
+    color: var(--text-muted) !important;
+}
+
+.dark-mode .list-unstyled li strong {
+    color: var(--text-color) !important;
+}
 </style>
 
 <?php include 'includes/header.php'; ?>

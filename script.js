@@ -4,39 +4,14 @@
 let isLoggedIn = false;
 let currentUser = null;
 
-// Dark Mode Toggle
+// Enhanced Dark Mode Toggle
 document.addEventListener('DOMContentLoaded', function() {
     const darkModeToggle = document.getElementById('darkModeToggle');
     const body = document.body;
     
-    // Check for saved dark mode preference
-    const savedMode = localStorage.getItem('darkMode');
-    if (savedMode === 'dark') {
-        body.classList.add('dark-mode');
+    // Function to update dark mode icon
+    function updateDarkModeIcon(isDark) {
         if (darkModeToggle) {
-            updateDarkModeIcon(true);
-        }
-    }
-    
-    // Dark mode toggle functionality
-    if (darkModeToggle) {
-        console.log('Dark mode toggle button found and initialized');
-        darkModeToggle.addEventListener('click', function() {
-            console.log('Dark mode toggle clicked');
-            body.classList.toggle('dark-mode');
-            const isDarkMode = body.classList.contains('dark-mode');
-            
-            // Save preference to localStorage
-            localStorage.setItem('darkMode', isDarkMode ? 'dark' : 'light');
-            
-            // Update icon
-            updateDarkModeIcon(isDarkMode);
-            
-            // Add loading animation to cards
-            animateCards();
-        });
-        
-        function updateDarkModeIcon(isDark) {
             const icon = darkModeToggle.querySelector('i');
             if (icon) {
                 if (isDark) {
@@ -46,16 +21,139 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
+    }
+    
+    // Function to update theme color
+    function updateThemeColor(isDark) {
+        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+        if (metaThemeColor) {
+            metaThemeColor.setAttribute('content', isDark ? '#1a1a1a' : '#007bff');
+        }
+    }
+    
+    // Check for saved dark mode preference or system preference
+    const savedMode = localStorage.getItem('darkMode');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // Determine initial mode: saved preference > system preference > light mode
+    let initialMode = 'light';
+    if (savedMode) {
+        initialMode = savedMode;
+    } else if (systemPrefersDark) {
+        initialMode = 'dark';
+    }
+    
+    // Apply initial mode immediately
+    if (initialMode === 'dark') {
+        body.classList.add('dark-mode');
+            updateDarkModeIcon(true);
+        updateThemeColor(true);
+    } else {
+        updateDarkModeIcon(false);
+        updateThemeColor(false);
+    }
+    
+    // Enhanced dark mode toggle functionality
+    if (darkModeToggle) {
+        console.log('Enhanced dark mode toggle button found and initialized');
+        
+        // Add smooth transition class to body
+        body.classList.add('dark-mode-transition');
+        
+        darkModeToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Enhanced dark mode toggle clicked');
+            
+            // Add loading state to button
+            const button = this;
+            const originalContent = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            button.disabled = true;
+            
+            // Toggle dark mode with smooth transition
+            body.classList.toggle('dark-mode');
+            const isDarkMode = body.classList.contains('dark-mode');
+            
+            // Save preference to localStorage
+            localStorage.setItem('darkMode', isDarkMode ? 'dark' : 'light');
+            
+            // Update icon with fade animation
+            const icon = darkModeToggle.querySelector('i');
+            if (icon) {
+                // Add fade out effect
+                icon.style.opacity = '0';
+                
+                setTimeout(() => {
+                    if (isDarkMode) {
+                        icon.className = 'fas fa-sun';
+                    } else {
+                        icon.className = 'fas fa-moon';
+                    }
+                    // Add fade in effect
+                    icon.style.opacity = '1';
+                }, 150);
+            }
+            
+            // Add loading animation to cards
+            animateCards();
+            
+            // Update meta theme color for mobile browsers
+            updateThemeColor(isDarkMode);
+            
+            // Dispatch custom event for other components
+            const event = new CustomEvent('darkModeChanged', {
+                detail: { isDarkMode: isDarkMode }
+            });
+            document.dispatchEvent(event);
+            
+            // Restore button after animation
+            setTimeout(() => {
+                button.innerHTML = originalContent;
+                button.disabled = false;
+            }, 300);
+        });
+        
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+            // Only auto-switch if user hasn't set a preference
+            if (!localStorage.getItem('darkMode')) {
+                if (e.matches) {
+                    body.classList.add('dark-mode');
+                    updateDarkModeIcon(true);
+                    updateThemeColor(true);
+                    localStorage.setItem('darkMode', 'dark');
+                } else {
+                    body.classList.remove('dark-mode');
+                    updateDarkModeIcon(false);
+                    updateThemeColor(false);
+                    localStorage.setItem('darkMode', 'light');
+                }
+            }
+        });
+        
+        // Add keyboard shortcut (Ctrl/Cmd + D)
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+                e.preventDefault();
+                darkModeToggle.click();
+            }
+        });
+        
+        // Add tooltip for keyboard shortcut
+        darkModeToggle.setAttribute('title', 'Toggle Dark Mode (Ctrl/Cmd + D)');
     } else {
         console.log('Dark mode toggle button not found');
     }
     
     function animateCards() {
-        const cards = document.querySelectorAll('.card');
+        const cards = document.querySelectorAll('.card, .post-card, .featured-post-card');
         cards.forEach((card, index) => {
             setTimeout(() => {
                 card.classList.add('loading');
-            }, index * 100);
+                setTimeout(() => {
+                    card.classList.remove('loading');
+                }, 500);
+            }, index * 50);
         });
     }
     

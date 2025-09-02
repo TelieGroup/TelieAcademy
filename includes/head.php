@@ -32,6 +32,10 @@ require_once dirname(__DIR__) . '/config/session.php';
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     
+    <!-- Theme Color for Mobile Browsers -->
+    <meta name="theme-color" content="#007bff" id="themeColor">
+    <meta name="color-scheme" content="light dark">
+    
     <!-- Preconnect to external domains for performance -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
