@@ -2372,3 +2372,51 @@ function showAlert(message, type = 'info') {
         }
     }, 5000);
 }
+
+// Navbar Collapse Fix
+document.addEventListener('DOMContentLoaded', function() {
+    // Ensure navbar collapse functionality works
+    const navbarToggler = document.querySelector('.navbar-toggler');
+    const navbarCollapse = document.querySelector('.navbar-collapse');
+    
+    if (navbarToggler && navbarCollapse) {
+        console.log('Navbar elements found, initializing collapse functionality');
+        
+        // Add click event listener directly to the toggler
+        navbarToggler.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Navbar toggler clicked');
+            
+            // Toggle the collapse class
+            if (navbarCollapse.classList.contains('show')) {
+                navbarCollapse.classList.remove('show');
+                this.setAttribute('aria-expanded', 'false');
+            } else {
+                navbarCollapse.classList.add('show');
+                this.setAttribute('aria-expanded', 'true');
+            }
+        });
+        
+        // Close navbar when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!navbarCollapse.contains(e.target) && !navbarToggler.contains(e.target)) {
+                navbarCollapse.classList.remove('show');
+                navbarToggler.setAttribute('aria-expanded', 'false');
+            }
+        });
+        
+        // Close navbar when clicking on a nav link (mobile)
+        const navLinks = navbarCollapse.querySelectorAll('.nav-link');
+        navLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                if (window.innerWidth < 992) { // Only on mobile
+                    navbarCollapse.classList.remove('show');
+                    navbarToggler.setAttribute('aria-expanded', 'false');
+                }
+            });
+        });
+    } else {
+        console.log('Navbar elements not found');
+    }
+});

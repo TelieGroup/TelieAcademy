@@ -41,7 +41,7 @@ if (!empty($authError)) {
 <?php endif; ?>
 
 <!-- Navigation -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+<nav class="navbar navbar-expand-lg navbar-light bg-primary fixed-top">
     <div class="container">
         <!-- Brand -->
         <a class="navbar-brand fw-bold" href="<?php echo strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../index' : 'index'; ?>">
@@ -49,7 +49,7 @@ if (!empty($authError)) {
         </a>
         
         <!-- Mobile Toggle -->
-        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <button class="navbar-toggler border-0" type="button" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         

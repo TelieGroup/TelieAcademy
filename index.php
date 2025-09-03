@@ -111,7 +111,7 @@ include 'includes/head.php';
     <?php endif; ?>
 
     <!-- Hero Section -->
-<section class="hero-section-modern text-center text-white">
+<section class="hero-section-modern text-center text-white pt-5">
         <div class="container">
             <div class="row justify-content-center">
             <div class="col-lg-10">

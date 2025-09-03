@@ -8905,7 +8905,7 @@ section.hero-section {
 /* ===== INDEX PAGE MODERN DESIGN ===== */
 
 /* Hero Section Modern */
-    .hero-section-modern {
+.hero-section-modern {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     padding: 6rem 0;
     position: relative;
@@ -8937,9 +8937,9 @@ section.hero-section {
 @keyframes float {
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-10px); }
-    }
-    
-    .hero-title-modern {
+}
+
+.hero-title-modern {
     font-size: 3.5rem;
     font-weight: 800;
     margin-bottom: 1.5rem;
@@ -8950,18 +8950,18 @@ section.hero-section {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    }
-    
-    .hero-subtitle-modern {
+}
+
+.hero-subtitle-modern {
     font-size: 1.25rem;
     color: rgba(255, 255, 255, 0.9);
     max-width: 600px;
     margin: 0 auto;
-    }
-    
+}
+
 .hero-actions-modern {
     display: flex;
-        gap: 1rem;
+    gap: 1rem;
     justify-content: center;
     flex-wrap: wrap;
 }
@@ -9020,14 +9020,14 @@ section.hero-section {
 
 .hero-stats-modern {
     margin-top: 3rem;
-    }
-    
-    .stat-item-modern {
+}
+
+.stat-item-modern {
     text-align: center;
     padding: 1rem;
-    }
-    
-    .stat-number-modern {
+}
+
+.stat-number-modern {
     font-size: 2rem;
     font-weight: 800;
     color: white;
@@ -9413,7 +9413,7 @@ section.hero-section {
     }
     
     .sorting-controls .btn {
-    border-radius: 8px;
+        border-radius: 8px;
         margin: 0.25rem 0;
     }
     

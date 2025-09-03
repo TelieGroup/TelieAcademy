@@ -65,7 +65,7 @@ include 'includes/head.php';
 <?php include 'includes/header.php'; ?>
 
 <!-- Hero Section -->
-<section class="posts-hero py-5 mt-5">
+<section class="posts-hero py-5">
         <div class="container">
         <div class="row justify-content-center">
             <div class="col-lg-8 text-center">
