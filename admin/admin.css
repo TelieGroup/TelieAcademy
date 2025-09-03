@@ -1508,4 +1508,92 @@
 
 .dark-mode .container-fluid.mt-5.pt-5 * {
     background-color: transparent !important;
+}
+
+/* Dark Mode Input Placeholders */
+.dark-mode input::placeholder,
+.dark-mode textarea::placeholder {
+    color: #a0aec0 !important;
+    opacity: 0.7;
+}
+
+.dark-mode input:focus::placeholder,
+.dark-mode textarea:focus::placeholder {
+    color: #718096 !important;
+    opacity: 0.5;
+}
+
+.dark-mode .form-control::placeholder,
+.dark-mode .form-select::placeholder {
+    color: #a0aec0 !important;
+    opacity: 0.7;
+}
+
+.dark-mode .form-control:focus::placeholder,
+.dark-mode .form-select:focus::placeholder {
+    color: #718096 !important;
+    opacity: 0.5;
+}
+
+/* Dark Mode Search Inputs */
+.dark-mode .search-input::placeholder,
+.dark-mode input[type="search"]::placeholder {
+    color: #a0aec0 !important;
+    opacity: 0.7;
+}
+
+.dark-mode .search-input:focus::placeholder,
+.dark-mode input[type="search"]:focus::placeholder {
+    color: #718096 !important;
+    opacity: 0.5;
+}
+
+/* Dark Mode Modal Inputs */
+.dark-mode .modal input::placeholder,
+.dark-mode .modal textarea::placeholder {
+    color: #a0aec0 !important;
+    opacity: 0.7;
+}
+
+.dark-mode .modal input:focus::placeholder,
+.dark-mode .modal textarea:focus::placeholder {
+    color: #718096 !important;
+    opacity: 0.5;
+}
+
+/* Dark Mode Newsletter Form Inputs */
+.dark-mode .newsletter-form-modern .form-control::placeholder {
+    color: #a0aec0 !important;
+    opacity: 0.7;
+}
+
+.dark-mode .newsletter-form-modern .form-control:focus::placeholder {
+    color: #718096 !important;
+    opacity: 0.5;
+}
+
+/* Dark Mode Contact Form Inputs */
+.dark-mode .contact-form input::placeholder,
+.dark-mode .contact-form textarea::placeholder {
+    color: #a0aec0 !important;
+    opacity: 0.7;
+}
+
+.dark-mode .contact-form input:focus::placeholder,
+.dark-mode .contact-form textarea:focus::placeholder {
+    color: #718096 !important;
+    opacity: 0.5;
+}
+
+/* Dark Mode Login/Register Form Inputs */
+.dark-mode .login-form input::placeholder,
+.dark-mode .register-form input::placeholder {
+    color: #a0aec0 !important;
+    opacity: 0.7;
+}
+
+.dark-mode .login-form input:focus::placeholder,
+.dark-mode .register-form input:focus::placeholder {
+    color: #718096 !important;
+    opacity: 0.5;
 } 
