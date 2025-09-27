@@ -216,7 +216,7 @@ include 'includes/head.php';
     <?php endif; ?>
 
     <!-- Banner Ads Section -->
-    <section class="py-4">
+    <section class="py-4" style="display: none;">
         <div class="container">
             <div class="row">
                 <div class="col-12">

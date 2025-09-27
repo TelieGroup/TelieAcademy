@@ -30,7 +30,10 @@ require_once dirname(__DIR__) . '/config/session.php';
     <meta name="twitter:description" content="<?php echo isset($pageDescription) ? $pageDescription : 'Learn modern web development with comprehensive tutorials on JavaScript, React, Python, and more.'; ?>">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" href="/assets/graduation-cap-icon.png?v=<?php echo time(); ?>" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/graduation-cap-icon.png?v=<?php echo time(); ?>">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/graduation-cap-icon.png?v=<?php echo time(); ?>">
+
     
     <!-- Theme Color for Mobile Browsers -->
     <meta name="theme-color" content="#007bff" id="themeColor">

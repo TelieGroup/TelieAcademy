@@ -1279,9 +1279,9 @@ include 'includes/head.php';
         top: 100px;
         right: 30px;
         z-index: 1000;
-        background: white;
+        background: transparent;
         border-radius: 50%;
-        padding: 1rem;
+        padding: 0rem;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
         border: 2px solid #e9ecef;
         transition: all 0.3s ease;
@@ -1304,13 +1304,14 @@ include 'includes/head.php';
     
     .progress-container {
         text-align: center;
+        
     }
     
     .progress-circle {
         position: relative;
         width: 60px;
         height: 60px;
-        margin-bottom: 0.5rem;
+        margin: 0rem;
     }
     
     .progress-ring {
@@ -1413,7 +1414,7 @@ include 'includes/head.php';
         .floating-progress-indicator {
             top: 80px;
             right: 20px;
-            padding: 0.75rem;
+            padding: 0rem;
         }
         
         .progress-circle {
@@ -2259,7 +2260,7 @@ include 'includes/head.php';
                             <span class="progress-number">0%</span>
                         </div>
                     </div>
-                    <div class="progress-label">Reading Progress</div>
+                    <!-- <div class="progress-label">Reading Progress</div> -->
                 </div>
             </div>
             <?php endif; ?>

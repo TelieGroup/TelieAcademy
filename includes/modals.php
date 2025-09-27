@@ -215,7 +215,7 @@
                             </div>
                             <div class="card-body d-flex flex-column">
                                 <div class="text-center mb-3">
-                                    <span class="h2 text-warning">$9.99</span>
+                                    <span class="h2 text-warning">$0</span>
                                     <span class="text-muted">/month</span>
                                 </div>
                                 <ul class="list-unstyled mb-4 flex-grow-1">
@@ -245,7 +245,7 @@
                                     </li>
                                 </ul>
                                 <button type="button" class="btn btn-warning btn-lg w-100 subscription-btn" 
-                                        data-subscription-type="premium" data-price="9.99">
+                                        data-subscription-type="premium" data-price="0">
                                     <i class="fas fa-crown me-2"></i>Subscribe to Premium
                                 </button>
                             </div>

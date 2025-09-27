@@ -48,7 +48,7 @@ $pageTitle = "Subscription Settings";
                                             </span>
                                             <?php if ($subscription['subscription_type'] === 'premium'): ?>
                                                 <p class="text-muted mt-2 mb-0">
-                                                    <small>$9.99/month</small>
+                                                    <small>$0/month</small>
                                                 </p>
                                             <?php else: ?>
                                                 <p class="text-muted mt-2 mb-0">
@@ -147,7 +147,7 @@ $pageTitle = "Subscription Settings";
                                             <li><i class="fas fa-crown text-warning me-2"></i>Ad-free experience</li>
                                         </ul>
                                         <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#newsletterModal">
-                                            <i class="fas fa-arrow-up me-2"></i>Upgrade to Premium ($9.99/month)
+                                            <i class="fas fa-arrow-up me-2"></i>Upgrade to Premium ($0/month)
                                         </button>
                                     </div>
                                 </div>
