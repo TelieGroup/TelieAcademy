@@ -1,6 +1,12 @@
 <?php
 // Include session configuration
 require_once dirname(__DIR__) . '/config/session.php';
+
+// Compute base path so assets work under subdirectories (e.g., /TelieAcademy)
+$__basePath = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
+if ($__basePath === '/') {
+	$__basePath = '';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -29,11 +35,12 @@ require_once dirname(__DIR__) . '/config/session.php';
     <meta name="twitter:title" content="<?php echo isset($pageTitle) ? $pageTitle . ' - TelieAcademy' : 'TelieAcademy - Tech Tutorial Blog'; ?>">
     <meta name="twitter:description" content="<?php echo isset($pageDescription) ? $pageDescription : 'Learn modern web development with comprehensive tutorials on JavaScript, React, Python, and more.'; ?>">
     
-    <!-- Favicon -->
-    <link rel="icon" href="/assets/graduation-cap-icon.png?v=<?php echo time(); ?>" type="image/x-icon">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/graduation-cap-icon.png?v=<?php echo time(); ?>">
-    <link rel="icon" type="image/png" sizes="16x16" href="/assets/graduation-cap-icon.png?v=<?php echo time(); ?>">
-
+	<!-- Favicon -->
+	<link rel="apple-touch-icon" sizes="180x180" href="<?php echo $__basePath; ?>/assets/favicon_io/apple-touch-icon.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="<?php echo $__basePath; ?>/assets/favicon_io/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="<?php echo $__basePath; ?>/assets/favicon_io/favicon-16x16.png">
+	<link rel="shortcut icon" href="<?php echo $__basePath; ?>/assets/favicon_io/favicon.ico" type="image/x-icon">
+	<link rel="manifest" href="<?php echo $__basePath; ?>/assets/favicon_io/site.webmanifest">
     
     <!-- Theme Color for Mobile Browsers -->
     <meta name="theme-color" content="#007bff" id="themeColor">
